@@ -33,3 +33,11 @@ do so, all subject to the following:
 using namespace Juice;
 
 typedef Variant<int, std::string> MyVariant;
+
+void
+foo()
+{
+  MyVariant a, b;
+
+  bool t = a == b;
+}

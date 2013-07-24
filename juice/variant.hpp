@@ -123,6 +123,12 @@ namespace Juice
       return *this;
     }
 
+    bool
+    operator==(const recursive_wrapper& rhs) const
+    {
+      return *m_t == *rhs.m_t;
+    }
+
     T& get() { return *m_t; }
     const T& get() const { return *m_t; }
 
@@ -176,8 +182,9 @@ namespace Juice
     typedef typename std::conditional
     <
       std::is_const<
-        typename std::remove_extent<
-          typename std::remove_reference<Storage>::type>::type
+        typename std::remove_pointer<
+          typename std::remove_reference<Storage>::type
+        >::type
       >::value,
       const T,
       T
@@ -357,6 +364,26 @@ namespace Juice
       int m_rhs_which;
     };
 
+    struct equality
+    {
+      typedef bool result_type;
+
+      equality(const Variant& self)
+      : m_self(self)
+      {
+      }
+
+      template <typename Rhs>
+      bool
+      operator()(Rhs& rhs) const
+      {
+        return *reinterpret_cast<Rhs*>(m_self.address()) == rhs;
+      }
+
+      private:
+      const Variant& m_self;
+    };
+
     struct destroyer
     {
       typedef void result_type;
@@ -424,7 +451,7 @@ namespace Juice
     <
       typename T, 
       typename Dummy = 
-       typename std::enable_if
+        typename std::enable_if
         <
           !std::is_same
           <
@@ -481,13 +508,25 @@ namespace Juice
       return *this;
     }
 
+    bool
+    operator==(const Variant& rhs) const
+    {
+      if (which() != rhs.which())
+      {
+        return false;
+      }
+
+      equality eq(*this);
+      return rhs.apply_visitor_internal(eq);
+    }
+
     int which() const {return m_which;}
 
     template <typename Internal, typename Visitor, typename... Args>
     typename Visitor::result_type
     apply_visitor(Visitor& visitor, Args&&... args)
     {
-      return do_visit<First, Types...>()(Internal(), m_which, m_storage,
+      return do_visit<First, Types...>()(Internal(), m_which, &m_storage,
         visitor, std::forward<Args>(args)...);
     }
 
@@ -495,20 +534,15 @@ namespace Juice
     typename Visitor::result_type
     apply_visitor(Visitor& visitor, Args&&... args) const
     {
-      return do_visit<First, Types...>()(Internal(), m_which, m_storage,
+      return do_visit<First, Types...>()(Internal(), m_which, &m_storage,
         visitor, std::forward<Args>(args)...);
     }
 
     private:
 
-    //TODO implement with alignas when it is implemented in gcc
-    //alignas(max<Alignof, First, Types...>::value) char[m_size];
-    union
-    {
-      char m_storage[m_size]; //max of size + alignof for each of Types...
-      //the type with the max alignment
-      typename max<Alignof, First, Types...>::type m_align; 
-    };
+    typename 
+      std::aligned_storage<m_size, max<Alignof, First, Types...>::value>::type
+      m_storage;
 
     int m_which;
 
@@ -516,8 +550,8 @@ namespace Juice
 
     void indicate_which(int which) {m_which = which;}
 
-    void* address() {return m_storage;}
-    const void* address() const {return m_storage;}
+    void* address() {return &m_storage;}
+    const void* address() const {return &m_storage;}
 
     template <typename Visitor>
     typename Visitor::result_type
@@ -545,7 +579,7 @@ namespace Juice
     construct(T&& t)
     {
       typedef typename std::remove_reference<T>::type type;
-      new(m_storage) type(std::forward<T>(t));
+      new(&m_storage) type(std::forward<T>(t));
     }
   };
 
@@ -580,7 +614,7 @@ namespace Juice
   typename Visitor::result_type
   apply_visitor(Visitor& visitor, Visitable& visitable, Args&&... args)
   {
-    return visitable.apply_visitor<MPL::false_>
+    return visitable.template apply_visitor<MPL::false_>
       (visitor, std::forward<Args>(args)...);
   }
 
@@ -588,7 +622,7 @@ namespace Juice
   typename Visitor::result_type
   apply_visitor(const Visitor& visitor, Visitable& visitable, Args&&... args)
   {
-    return visitable.apply_visitor<MPL::false_>
+    return visitable.template apply_visitor<MPL::false_>
       (visitor, std::forward<Args>(args)...);
   }
 
