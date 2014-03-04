@@ -409,7 +409,7 @@ namespace Juice
       static void 
       initialise(Variant& v, Current&& current)
       {
-        v.construct(std::move<Current>(current));
+        v.construct(std::move(current));
         v.indicate_which(Which);
       }
 
