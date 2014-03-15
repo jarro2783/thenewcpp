@@ -723,7 +723,7 @@ namespace Juice
     typename Visitable2
   >
   typename Visitor::result_type
-  apply_visitor_double(Visitor& visitor, Visitable1&& v1, Visitable2&& v2)
+  apply_visitor_binary(Visitor& visitor, Visitable1&& v1, Visitable2&& v2)
   {
     detail::BinaryVisitor<Visitor, Visitable1> v{
       std::forward<Visitor>(visitor), 
