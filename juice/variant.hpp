@@ -54,6 +54,17 @@ namespace Juice
     struct false_ {};
   }
 
+  template <typename R = void>
+  class static_visitor
+  {
+    public:
+    typedef R result_type;
+
+    //so that it can't be instantiated
+    protected:
+    ~static_visitor() = default;
+  };
+
   template <typename T>
   class recursive_wrapper
   {
