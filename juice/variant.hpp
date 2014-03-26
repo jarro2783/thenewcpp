@@ -640,7 +640,7 @@ namespace Juice
 
     template <typename U>
     result_type
-    operator()(const U& u) const
+    operator()(const U&) const
     {
       return nullptr;
     }
