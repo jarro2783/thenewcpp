@@ -511,15 +511,13 @@ namespace Juice
 
     Variant(const Variant& rhs)
     {
-      constructor c(*this);
-      rhs.apply_visitor_internal(c);
+      rhs.apply_visitor_internal(constructor(*this));
       indicate_which(rhs.which());
     }
 
     Variant(Variant&& rhs)
     {
-      move_constructor mc(*this);
-      rhs.apply_visitor_internal(mc);
+      rhs.apply_visitor_internal(move_constructor(*this));
       indicate_which(rhs.which());
     }
 
@@ -527,8 +525,7 @@ namespace Juice
     {
       if (this != &rhs)
       {
-        assigner a(*this, rhs.which());
-        rhs.apply_visitor_internal(a);
+        rhs.apply_visitor_internal(assigner(*this, rhs.which()));
         indicate_which(rhs.which());
       }
       return *this;
@@ -538,8 +535,7 @@ namespace Juice
     {
       if (this != &rhs)
       {
-        move_assigner ma(*this, rhs.which());
-        rhs.apply_visitor_internal(ma);
+        rhs.apply_visitor_internal(move_assigner(*this, rhs.which()));
         indicate_which(rhs.which());
       }
       return *this;
@@ -553,8 +549,7 @@ namespace Juice
         return false;
       }
 
-      equality eq(*this);
-      return rhs.apply_visitor_internal(eq);
+      return rhs.apply_visitor_internal(equality(*this));
     }
 
     int which() const {return m_which;}
@@ -607,8 +602,7 @@ namespace Juice
     void
     destroy()
     {
-      destroyer d;
-      apply_visitor_internal(d);
+      apply_visitor_internal(destroyer());
     }
 
     template <typename T>
