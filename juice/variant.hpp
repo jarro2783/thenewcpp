@@ -594,7 +594,7 @@ namespace Juice
 
     template <typename Visitor>
     typename Visitor::result_type
-    apply_visitor_internal(Visitor& visitor) const
+    apply_visitor_internal(Visitor&& visitor) const
     {
       return apply_visitor<MPL::true_, Visitor>(std::forward<Visitor>(visitor));
     }
