@@ -180,7 +180,8 @@ namespace Juice
     template <typename Visitor, typename Visitable>
     struct BinaryVisitor
     {
-      typedef typename Visitor::result_type result_type;
+      typedef typename std::remove_reference<Visitor>::type::result_type
+        result_type;
 
       BinaryVisitor(Visitor&& visitor, Visitable&& visitable)
       : v(visitor)
@@ -211,7 +212,7 @@ namespace Juice
     typename Visitor, 
     typename... Args
   >
-  typename Visitor::result_type
+  typename std::remove_reference<Visitor>::type::result_type
   visitor_caller(Internal&& internal, 
     Storage&& storage, Visitor&& visitor, Args&&... args)
   {
@@ -245,18 +246,18 @@ namespace Juice
         typename Visitor, 
         typename... Args
       >
-      typename Visitor::result_type
+      typename std::remove_reference<Visitor>::type::result_type
       operator()
       (
         Internal&& internal,
         size_t which, 
         VoidPtrCV&& storage, 
-        Visitor& visitor, 
+        Visitor&& visitor,
         Args&&... args
       )
       {
-        typedef typename Visitor::result_type (*whichCaller)
-          (Internal&&, VoidPtrCV&&, Visitor&&, Args&&...);
+        typedef typename std::remove_reference<Visitor>::type::result_type
+          (*whichCaller)(Internal&&, VoidPtrCV&&, Visitor&&, Args&&...);
 
         static whichCaller callers[sizeof...(AllTypes)] =
           {
@@ -559,19 +560,19 @@ namespace Juice
     int which() const {return m_which;}
 
     template <typename Internal, typename Visitor, typename... Args>
-    typename Visitor::result_type
-    apply_visitor(Visitor& visitor, Args&&... args)
+    typename std::remove_reference<Visitor>::type::result_type
+    apply_visitor(Visitor&& visitor, Args&&... args)
     {
       return do_visit<First, Types...>()(Internal(), m_which, &m_storage,
-        visitor, std::forward<Args>(args)...);
+        std::forward<Visitor>(visitor), std::forward<Args>(args)...);
     }
 
     template <typename Internal, typename Visitor, typename... Args>
-    typename Visitor::result_type
-    apply_visitor(Visitor& visitor, Args&&... args) const
+    typename std::remove_reference<Visitor>::type::result_type
+    apply_visitor(Visitor&& visitor, Args&&... args) const
     {
       return do_visit<First, Types...>()(Internal(), m_which, &m_storage,
-        visitor, std::forward<Args>(args)...);
+        std::forward<Visitor>(visitor), std::forward<Args>(args)...);
     }
 
     private:
@@ -591,16 +592,16 @@ namespace Juice
 
     template <typename Visitor>
     typename Visitor::result_type
-    apply_visitor_internal(Visitor& visitor)
+    apply_visitor_internal(Visitor&& visitor)
     {
-      return apply_visitor<MPL::true_, Visitor>(visitor);
+      return apply_visitor<MPL::true_, Visitor>(std::forward<Visitor>(visitor));
     }
 
     template <typename Visitor>
     typename Visitor::result_type
     apply_visitor_internal(Visitor& visitor) const
     {
-      return apply_visitor<MPL::true_, Visitor>(visitor);
+      return apply_visitor<MPL::true_, Visitor>(std::forward<Visitor>(visitor));
     }
 
     void
@@ -647,19 +648,11 @@ namespace Juice
   };
 
   template <typename Visitor, typename Visitable, typename... Args>
-  typename Visitor::result_type
-  apply_visitor(Visitor& visitor, Visitable& visitable, Args&&... args)
+  typename std::remove_reference<Visitor>::type::result_type
+  apply_visitor(Visitor&& visitor, Visitable& visitable, Args&&... args)
   {
     return visitable.template apply_visitor<MPL::false_>
-      (visitor, std::forward<Args>(args)...);
-  }
-
-  template <typename Visitor, typename Visitable, typename... Args>
-  typename Visitor::result_type
-  apply_visitor(const Visitor& visitor, Visitable& visitable, Args&&... args)
-  {
-    return visitable.template apply_visitor<MPL::false_>
-      (visitor, std::forward<Args>(args)...);
+      (std::forward<Visitor>(visitor), std::forward<Args>(args)...);
   }
 
   template <typename T, typename First, typename... Types>
@@ -733,7 +726,7 @@ namespace Juice
     typename Visitable1,
     typename Visitable2
   >
-  typename Visitor::result_type
+  typename std::remove_reference<Visitor>::result_type
   apply_visitor_binary(Visitor& visitor, Visitable1&& v1, Visitable2&& v2)
   {
     detail::BinaryVisitor<Visitor, Visitable1> v{
