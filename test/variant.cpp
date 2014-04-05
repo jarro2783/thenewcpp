@@ -34,10 +34,30 @@ using namespace Juice;
 
 typedef Variant<int, std::string> MyVariant;
 
+class MyVisitor : public static_visitor<int>
+{
+  public:
+
+  int
+  operator()(int a) const
+  {
+    return a;
+  }
+
+  int
+  operator()(const std::string& s) const
+  {
+    return s.size();
+  }
+};
+
 void
 foo()
 {
   MyVariant a, b;
 
   bool t = a == b;
+
+  MyVisitor v;
+  apply_visitor(v, a);
 }
