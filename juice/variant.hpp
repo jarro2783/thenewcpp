@@ -720,8 +720,8 @@ namespace Juice
     typename Visitable1,
     typename Visitable2
   >
-  typename std::remove_reference<Visitor>::result_type
-  apply_visitor_binary(Visitor& visitor, Visitable1&& v1, Visitable2&& v2)
+  typename std::remove_reference<Visitor>::type::result_type
+  apply_visitor_binary(Visitor&& visitor, Visitable1&& v1, Visitable2&& v2)
   {
     detail::BinaryVisitor<Visitor, Visitable1> v{
       std::forward<Visitor>(visitor), 
