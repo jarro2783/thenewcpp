@@ -643,7 +643,7 @@ namespace Juice
 
   template <typename Visitor, typename Visitable, typename... Args>
   typename std::remove_reference<Visitor>::type::result_type
-  apply_visitor(Visitor&& visitor, Visitable& visitable, Args&&... args)
+  apply_visitor(Visitor&& visitor, Visitable&& visitable, Args&&... args)
   {
     return visitable.template apply_visitor<MPL::false_>
       (std::forward<Visitor>(visitor), std::forward<Args>(args)...);
