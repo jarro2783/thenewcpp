@@ -44,7 +44,7 @@ do so, all subject to the following:
 #include <type_traits>
 #include <utility>
 
-#include <juice/mpl.hpp>
+#include "mpl.hpp"
 
 namespace Juice
 {
