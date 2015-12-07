@@ -191,9 +191,9 @@ namespace Juice
 
       template <typename T>
       result_type
-      operator()(const T& t)
+      operator()(T&& t)
       {
-        return apply_visitor(v, visitable, t);
+        return apply_visitor(v, visitable, std::forward<T>(t));
       }
 
       private:
