@@ -60,4 +60,5 @@ foo()
 
   MyVisitor v;
   apply_visitor(v, a);
+  apply_visitor(MyVisitor(), a);
 }
