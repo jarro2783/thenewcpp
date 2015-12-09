@@ -731,6 +731,76 @@ namespace Juice
     return apply_visitor(v, std::forward<Visitable2>(v2));
   }
 
+  template <template <typename> class Compare>
+  struct RelationalVisitor
+  {
+    typedef bool result_type;
+
+    template <typename T, typename U>
+    bool
+    operator()(const T& t, const U& u)
+    {
+      //this one should never be called
+      assert(false);
+    }
+
+    template <typename T>
+    bool
+    operator()(const T& a, const T& b)
+    {
+      return Compare<T>()(a, b);
+    }
+  };
+
+  template <template <typename> class Compare>
+  struct VariantCompare
+  {
+    template <typename... Types>
+    bool
+    operator()(const Variant<Types...>& v, const Variant<Types...>& w)
+    {
+      if (Compare<int>()(v.which(), w.which()))
+      {
+      }
+      else if (v.which() == w.which())
+      {
+        return apply_visitor_binary(RelationalVisitor<Compare>(), v, w);
+      }
+      else
+      {
+        return false;
+      }
+    }
+  };
+
+  template <typename... Types>
+  bool
+  operator<(const Variant<Types...>& v, const Variant<Types...>& w)
+  {
+    return VariantCompare<std::less>()(v, w);
+  }
+
+  template <typename... Types>
+  bool
+  operator>(const Variant<Types...>& v, const Variant<Types...>& w)
+  {
+    return VariantCompare<std::greater>()(v, w);
+  }
+
+  template <typename... Types>
+  bool
+  operator<=(const Variant<Types...>& v, const Variant<Types...>& w)
+  {
+    return !VariantCompare<std::greater>()(w, v);
+  }
+
+  template <typename... Types>
+  bool
+  operator>=(const Variant<Types...>& v, const Variant<Types...>& w)
+  {
+    return !VariantCompare<std::less>()(v, w);
+  }
+
 }
 
 #endif

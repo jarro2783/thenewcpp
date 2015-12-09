@@ -27,7 +27,9 @@ do so, all subject to the following:
 
 */
 
+#include <iostream>
 #include <string>
+
 #include <juice/variant.hpp>
 
 using namespace Juice;
@@ -56,9 +58,26 @@ foo()
 {
   MyVariant a, b;
 
-  bool t = a == b;
+  bool c = a == b;
 
   MyVisitor v;
   apply_visitor(v, a);
   apply_visitor(MyVisitor(), a);
+
+  MyVariant s("hello");
+  MyVariant t("goodbye");
+
+  std::cout << "0 < 0: " << (a < b) << std::endl;
+  std::cout << "goodbye < hello: " << (t < s) << std::endl;
+  std::cout << "0 < hello: " << (a < s) << std::endl;
+  std::cout << "hello < goodbye: " << (s < t) << std::endl;
+  std::cout << "goodbye <= hello: " << (s <= t) << std::endl;
+  std::cout << "0 <= 0: " << (a <= b) << std::endl;
+  std::cout << "0 >= 0: " << (a >= b) << std::endl;
+}
+
+int main(int argc, char** argv)
+{
+  foo();
+  return 0;
 }
