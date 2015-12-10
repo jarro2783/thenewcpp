@@ -114,9 +114,13 @@ namespace Juice
     recursive_wrapper&
     operator=(recursive_wrapper&& rhs)
     {
-      delete m_t;
-      m_t = rhs.m_t;
-      rhs.m_t = nullptr;
+      if (this != &rhs)
+      {
+        const T* tmp = m_t;
+        m_t = rhs.m_t;
+        rhs.m_t = nullptr;
+        delete tmp;
+      }
       return *this;
     }
 
@@ -391,8 +395,15 @@ namespace Juice
         }
         else
         {
-          m_self.destroy(); //nothrow
+          //in case rhs is in a subtree of self, we don't want to destroy it
+          //first
+          //we can move self to a temporary object because rhs can only be
+          //the same type as self, which means that it is in a
+          //recursive_wrapper, and recursive_wrapper move assignment only
+          //copies its pointer
+          Variant tmp(std::move(m_self));
           m_self.construct(std::move(rhs)); //nothrow (please)
+          //m_self.destroy(); //nothrow
         }
       }
 
@@ -535,8 +546,9 @@ namespace Juice
     {
       if (this != &rhs)
       {
-        rhs.apply_visitor_internal(move_assigner(*this, rhs.which()));
-        indicate_which(rhs.which());
+        auto w = rhs.which();
+        rhs.apply_visitor_internal(move_assigner(*this, w));
+        indicate_which(w);
       }
       return *this;
     }
