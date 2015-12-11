@@ -661,6 +661,7 @@ namespace Juice
       (std::forward<Visitor>(visitor), std::forward<Args>(args)...);
   }
 
+#if __cpp_generic_lambdas >= 201304 && __cpp_decltype_auto >= 201304
   template <typename Visitor>
   auto
   apply_visitor(Visitor&& visitor)
@@ -670,6 +671,7 @@ namespace Juice
       return apply_visitor(visitor, values...);
     };
   }
+#endif
 
   template <typename T, typename First, typename... Types>
   T*
