@@ -43,6 +43,7 @@ class MyVisitor : public static_visitor<int>
   int
   operator()(int a) const
   {
+    std::cout << "Visit int " << a << std::endl;
     return a;
   }
 
@@ -52,6 +53,32 @@ class MyVisitor : public static_visitor<int>
     return s.size();
   }
 };
+
+struct MyStruct
+{
+  MyStruct&
+  operator=(MyStruct&& rhs)
+  {
+    if (this != &rhs)
+    {
+      x = rhs.x;
+    }
+
+    return *this;
+  }
+
+  MyStruct()
+  {
+  }
+
+  MyStruct(MyStruct&&)
+  {
+  }
+
+  int x;
+};
+
+typedef Juice::Variant<MyStruct, int> ComplexVariant;
 
 void
 foo()
@@ -74,6 +101,13 @@ foo()
   std::cout << "goodbye <= hello: " << (s <= t) << std::endl;
   std::cout << "0 <= 0: " << (a <= b) << std::endl;
   std::cout << "0 >= 0: " << (a >= b) << std::endl;
+
+  ComplexVariant complexa;
+  complexa = ComplexVariant(5);
+  a = MyVariant();
+
+  auto visit = apply_visitor(v);
+  visit(a);
 }
 
 int main(int argc, char** argv)
