@@ -661,6 +661,16 @@ namespace Juice
       (std::forward<Visitor>(visitor), std::forward<Args>(args)...);
   }
 
+  template <typename Visitor>
+  auto
+  apply_visitor(Visitor&& visitor)
+  {
+    return [&visitor] (auto... values) -> auto
+    {
+      return apply_visitor(visitor, values...);
+    };
+  }
+
   template <typename T, typename First, typename... Types>
   T*
   get(Variant<First, Types...>* var)
