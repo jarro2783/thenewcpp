@@ -850,7 +850,7 @@ namespace Juice
 #endif
 
   template <typename Visitor, typename... Values>
-  auto
+  decltype(auto)
   visit(Visitor&& vis, Values&&... args)
   {
     return MultiVisitor<Visitor>(std::forward<Visitor>(vis)).visit(args...);
@@ -864,6 +864,7 @@ namespace Juice
     typedef typename std::remove_reference<Visitor>::type::result_type 
       result_type;
 
+    constexpr
     MultiVisitor(Visitor&& vis, Visited&&... vs)
     : m_vis(vis)
     , m_vs(vs...)
@@ -871,15 +872,16 @@ namespace Juice
     }
 
     template <typename First, int... I>
+    constexpr
     auto
     make_multi(Visitor&& v, std::integer_sequence<int, I...>, First&& f)
     {
-      return MultiVisitor<Visitor, First, Visited...>(v, f, 
-        std::get<I>(m_vs)...);
+      return MultiVisitor<Visitor, Visited..., First>(v,
+        std::get<I>(m_vs)..., std::forward<First>(f));
     }
 
     template <typename First, typename... Values>
-    auto
+    decltype(auto)
     operator()(First&& f, Values&&... values)
     {
       return 
@@ -905,21 +907,21 @@ namespace Juice
 #endif
 
     template <typename... Types, typename... Args>
-    auto
+    decltype(auto)
     visit(Variant<Types...>& var, Args&&... args)
     {
       return var.apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
     }
 
     template <int... I, typename... Args>
-    auto
+    decltype(auto)
     do_visit(std::integer_sequence<int, I...>, Visitor&& v, Args&&... args)
     {
       return v(std::get<I>(m_vs)..., std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    auto
+    decltype(auto)
     visit(Args&&... args)
     {
       return do_visit(std::make_integer_sequence<int, sizeof...(Visited)>(),
