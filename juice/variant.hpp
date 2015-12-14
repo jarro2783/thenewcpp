@@ -825,6 +825,113 @@ namespace Juice
     return !VariantCompare<std::less>()(v, w);
   }
 
+  template <typename Visitor, typename... Visited>
+  struct MultiVisitor;
+
+#if 0
+  template <typename Visitor>
+  struct MultiVisitor<Visitor>
+  {
+    MultiVisitor(Visitor& vis)
+    : m_vis(vis)
+    {
+    }
+
+    template <typename... Values>
+    auto
+    operator()(Values&&... values)
+    {
+      return m_vis(values...);
+    }
+
+    private:
+    Visitor& m_vis;
+  };
+#endif
+
+  template <typename Visitor, typename... Values>
+  auto
+  visit(Visitor&& vis, Values&&... args)
+  {
+    return MultiVisitor<Visitor>(std::forward<Visitor>(vis)).visit(args...);
+  }
+
+  template <typename Visitor, typename... Visited>
+  class MultiVisitor
+  {
+    public:
+
+    typedef typename std::remove_reference<Visitor>::type::result_type 
+      result_type;
+
+    MultiVisitor(Visitor&& vis, Visited&&... vs)
+    : m_vis(vis)
+    , m_vs(vs...)
+    {
+    }
+
+    template <typename First, int... I>
+    auto
+    make_multi(Visitor&& v, std::integer_sequence<int, I...>, First&& f)
+    {
+      return MultiVisitor<Visitor, First, Visited...>(v, f, 
+        std::get<I>(m_vs)...);
+    }
+
+    template <typename First, typename... Values>
+    auto
+    operator()(First&& f, Values&&... values)
+    {
+      return 
+        make_multi(m_vis, 
+          std::make_integer_sequence<int, sizeof...(Visited)>(), 
+          std::forward<First>(f))
+        .visit(std::forward<Values>(values)...);
+    }
+
+#if 0
+    template <int... I, typename... Values>
+    auto
+    do_visit(const std::integer_sequence<int, I...>&, Values&&... values)
+    {
+      //m_last.apply_visitor(
+      //  MultiVisitor<Visitor, Visitable...>(m_vis, std::get<I>(m_vs)...),
+      //  values...
+      //);
+
+      std::get<sizeof...(Visitable)-2>(m_vs).apply_visitor(
+      );
+    }
+#endif
+
+    template <typename... Types, typename... Args>
+    auto
+    visit(Variant<Types...>& var, Args&&... args)
+    {
+      return var.apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
+    }
+
+    template <int... I, typename... Args>
+    auto
+    do_visit(std::integer_sequence<int, I...>, Visitor&& v, Args&&... args)
+    {
+      return v(std::get<I>(m_vs)..., std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    auto
+    visit(Args&&... args)
+    {
+      return do_visit(std::make_integer_sequence<int, sizeof...(Visited)>(),
+        std::forward<Visitor>(m_vis), std::forward<Args>(args)...);
+    }
+
+    private:
+    Visitor&& m_vis;
+    std::tuple<Visited&...> m_vs;
+  };
+
+
 }
 
 #endif

@@ -30,6 +30,8 @@ do so, all subject to the following:
 #include <iostream>
 #include <string>
 
+#include <typeinfo>
+
 #include <juice/variant.hpp>
 
 using namespace Juice;
@@ -80,6 +82,21 @@ struct MyStruct
 
 typedef Juice::Variant<MyStruct, int> ComplexVariant;
 
+struct Multiple
+{
+  typedef void result_type;
+
+  template <typename A, typename B>
+  void
+  operator()(A a, B b)
+  {
+    std::cout << "Multiple visitor" << std::endl;
+    std::cout << typeid(A).name() << std::endl;
+    std::cout << "(" << a << ", " << b << ")"
+      << std::endl;
+  }
+};
+
 void
 foo()
 {
@@ -106,8 +123,11 @@ foo()
   complexa = ComplexVariant(5);
   a = MyVariant();
 
-  auto visit = apply_visitor(v);
-  visit(a);
+  auto delayed = apply_visitor(v);
+  delayed(a);
+
+  Multiple m;
+  visit(m, a, s);
 }
 
 int main(int argc, char** argv)
