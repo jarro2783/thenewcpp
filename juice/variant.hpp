@@ -216,7 +216,7 @@ namespace Juice
     typename Visitor, 
     typename... Args
   >
-  typename std::remove_reference<Visitor>::type::result_type
+  decltype(auto)
   visitor_caller(Internal&& internal, 
     Storage&& storage, Visitor&& visitor, Args&&... args)
   {
@@ -235,6 +235,12 @@ namespace Juice
       internal), std::forward<Args>(args)...);
   }
 
+  template <typename A, typename... B>
+  void
+  call_deduce(A a, B... b)
+  {
+  }
+
   template <typename First, typename... Types>
   class Variant
   {
@@ -250,7 +256,7 @@ namespace Juice
         typename Visitor, 
         typename... Args
       >
-      typename std::remove_reference<Visitor>::type::result_type
+      decltype(auto)
       operator()
       (
         Internal&& internal,
@@ -260,7 +266,24 @@ namespace Juice
         Args&&... args
       )
       {
-        typedef typename std::remove_reference<Visitor>::type::result_type
+        //typedef decltype(call_deduce(
+        //    &visitor_caller<Internal&&, AllTypes,
+        //      VoidPtrCV&&, Visitor, Args&&...>...
+        //)) result;
+
+        typedef
+        decltype (visitor_caller<Internal&&, First, VoidPtrCV&&, Visitor,
+          Args&&...>
+          (
+            std::forward<Internal>(internal),
+            std::forward<VoidPtrCV>(storage), 
+            std::forward<Visitor>(visitor), 
+            std::forward<Args>(args)...
+          ))
+        result;
+
+        //typedef typename std::remove_reference<Visitor>::type::result_type
+        typedef result
           (*whichCaller)(Internal&&, VoidPtrCV&&, Visitor&&, Args&&...);
 
         static whichCaller callers[sizeof...(AllTypes)] =
@@ -567,7 +590,7 @@ namespace Juice
     int which() const {return m_which;}
 
     template <typename Internal, typename Visitor, typename... Args>
-    typename std::remove_reference<Visitor>::type::result_type
+    decltype(auto)
     apply_visitor(Visitor&& visitor, Args&&... args)
     {
       return do_visit<First, Types...>()(Internal(), m_which, &m_storage,
@@ -575,7 +598,7 @@ namespace Juice
     }
 
     template <typename Internal, typename Visitor, typename... Args>
-    typename std::remove_reference<Visitor>::type::result_type
+    decltype(auto)
     apply_visitor(Visitor&& visitor, Args&&... args) const
     {
       return do_visit<First, Types...>()(Internal(), m_which, &m_storage,
@@ -598,14 +621,14 @@ namespace Juice
     const void* address() const {return &m_storage;}
 
     template <typename Visitor>
-    typename Visitor::result_type
+    decltype(auto)
     apply_visitor_internal(Visitor&& visitor)
     {
       return apply_visitor<MPL::true_, Visitor>(std::forward<Visitor>(visitor));
     }
 
     template <typename Visitor>
-    typename Visitor::result_type
+    decltype(auto)
     apply_visitor_internal(Visitor&& visitor) const
     {
       return apply_visitor<MPL::true_, Visitor>(std::forward<Visitor>(visitor));
