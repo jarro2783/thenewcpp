@@ -35,7 +35,7 @@ do so, all subject to the following:
 #include <type_traits>
 #include <cstdlib>
 
-namespace Juice
+namespace juice
 {
 
   namespace detail

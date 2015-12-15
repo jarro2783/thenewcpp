@@ -46,7 +46,7 @@ do so, all subject to the following:
 
 #include "mpl.hpp"
 
-namespace Juice
+namespace juice
 {
   namespace MPL
   {
@@ -637,6 +637,9 @@ namespace Juice
     }
   };
 
+  template <typename... Types>
+  using variant = Variant<Types...>;
+
   struct bad_get : public std::exception
   {
     virtual const char* what() const throw()
@@ -931,5 +934,10 @@ namespace Juice
     return !VariantCompare<std::less>()(v, w);
   }
 }
+
+//this is deprecated as we are moving to a more standard naming convention
+//it's a shame I can't mark this namespace name as deprecated
+//it will be removed in a later version
+namespace Juice = juice;
 
 #endif
