@@ -328,8 +328,6 @@ namespace Juice
 
     struct constructor
     {
-      typedef void result_type;
-
       constructor(Variant& self)
       : m_self(self)
       {
@@ -348,8 +346,6 @@ namespace Juice
 
     struct move_constructor
     {
-      typedef void result_type;
-      
       move_constructor(Variant& self)
       : m_self(self)
       {
@@ -368,8 +364,6 @@ namespace Juice
 
     struct assigner
     {
-      typedef void result_type;
-
       assigner(Variant& self, int rhs_which)
       : m_self(self), m_rhs_which(rhs_which)
       {
@@ -399,8 +393,6 @@ namespace Juice
     
     struct move_assigner
     {
-      typedef void result_type;
-
       move_assigner(Variant& self, int rhs_which)
       : m_self(self), m_rhs_which(rhs_which)
       {
@@ -437,8 +429,6 @@ namespace Juice
 
     struct equality
     {
-      typedef bool result_type;
-
       equality(const Variant& self)
       : m_self(self)
       {
@@ -457,8 +447,6 @@ namespace Juice
 
     struct destroyer
     {
-      typedef void result_type;
-
       template <typename T>
       void
       operator()(T& t) const
@@ -677,7 +665,7 @@ namespace Juice
   };
 
   template <typename Visitor, typename Visitable, typename... Args>
-  typename std::remove_reference<Visitor>::type::result_type
+  decltype(auto)
   apply_visitor(Visitor&& visitor, Visitable&& visitable, Args&&... args)
   {
     return visitable.template apply_visitor<MPL::false_>
@@ -808,6 +796,7 @@ namespace Juice
     {
       if (Compare<int>()(v.which(), w.which()))
       {
+        return true;
       }
       else if (v.which() == w.which())
       {
@@ -883,9 +872,6 @@ namespace Juice
   class MultiVisitor
   {
     public:
-
-    typedef typename std::remove_reference<Visitor>::type::result_type 
-      result_type;
 
     constexpr
     MultiVisitor(Visitor&& vis, Visited&&... vs)

@@ -84,8 +84,6 @@ typedef Juice::Variant<MyStruct, int> ComplexVariant;
 
 struct Multiple
 {
-  typedef void result_type;
-
   template <typename A, typename B>
   void
   operator()(A a, B b)
@@ -103,6 +101,7 @@ foo()
   MyVariant a, b;
 
   bool c = a == b;
+  (void)c;
 
   MyVisitor v;
   apply_visitor(v, a);
