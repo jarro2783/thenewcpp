@@ -104,8 +104,8 @@ foo()
   (void)c;
 
   MyVisitor v;
-  apply_visitor(v, a);
-  apply_visitor(MyVisitor(), a);
+  visit(v, a);
+  visit(MyVisitor(), a);
 
   MyVariant s("hello");
   MyVariant t("goodbye");
@@ -122,8 +122,8 @@ foo()
   complexa = ComplexVariant(5);
   a = MyVariant();
 
-  auto delayed = apply_visitor(v);
-  delayed(a);
+  //auto delayed = apply_visitor(v);
+  //delayed(a);
 
   Multiple m;
   visit(m, a, s);

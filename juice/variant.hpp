@@ -665,6 +665,11 @@ namespace Juice
   };
 
   template <typename Visitor, typename Visitable, typename... Args>
+//#ifdef __has_cpp_attribute
+//#if __has_cpp_attribute(deprecated)
+  [[ deprecated("Use the general visit function") ]]
+//#endif
+//#endif
   decltype(auto)
   apply_visitor(Visitor&& visitor, Visitable&& visitable, Args&&... args)
   {
@@ -672,7 +677,7 @@ namespace Juice
       (std::forward<Visitor>(visitor), std::forward<Args>(args)...);
   }
 
-#if __cpp_generic_lambdas >= 201304 && __cpp_decltype_auto >= 201304
+//#if __cpp_generic_lambdas >= 201304 && __cpp_decltype_auto >= 201304
   template <typename Visitor>
   auto
   apply_visitor(Visitor&& visitor)
@@ -682,27 +687,111 @@ namespace Juice
       return apply_visitor(visitor, values...);
     };
   }
-#endif
+//#endif
+
+  template <typename Visitor, typename... Visited>
+  class MultiVisitor
+  {
+    public:
+
+    constexpr
+    MultiVisitor(Visitor&& vis, Visited&&... vs)
+    : m_vis(std::forward<Visitor>(vis))
+    , m_vs(std::forward<Visited>(vs)...)
+    {
+    }
+
+    template <typename First, int... I>
+    constexpr
+    auto
+    make_multi(Visitor&& v, std::integer_sequence<int, I...>, First&& f)
+    {
+      return MultiVisitor<Visitor, Visited..., First>(
+        std::forward<Visitor>(v),
+        std::get<I>(m_vs)...,
+        std::forward<First>(f));
+    }
+
+    template <typename First, typename... Values>
+    decltype(auto)
+    operator()(First&& f, Values&&... values)
+    {
+      return 
+        make_multi(std::forward<Visitor>(m_vis), 
+          std::make_integer_sequence<int, sizeof...(Visited)>(), 
+          std::forward<First>(f))
+        .visit(std::forward<Values>(values)...);
+    }
+
+    template <typename... Types, typename... Args>
+    decltype(auto)
+    visit(const Variant<Types...>& var, Args&&... args)
+    {
+      return var.apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
+    }
+
+    template <typename... Types, typename... Args>
+    decltype(auto)
+    visit(Variant<Types...>& var, Args&&... args)
+    {
+      return var.apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
+    }
+
+    template <typename... Types, typename... Args>
+    decltype(auto)
+    visit(Variant<Types...>&& var, Args&&... args)
+    {
+      return std::move(var)
+        .apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
+    }
+
+    template <int... I, typename... Args>
+    decltype(auto)
+    do_visit(std::integer_sequence<int, I...>, Visitor&& v, Args&&... args)
+    {
+      return std::forward<Visitor>(v)
+        (std::get<I>(m_vs)..., std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    decltype(auto)
+    visit(Args&&... args)
+    {
+      return do_visit(std::make_integer_sequence<int, sizeof...(Visited)>(),
+        std::forward<Visitor>(m_vis), std::forward<Args>(args)...);
+    }
+
+    private:
+    Visitor&& m_vis;
+    std::tuple<Visited&...> m_vs;
+  };
+
+  template <typename Visitor, typename... Values>
+  decltype(auto)
+  visit(Visitor&& vis, Values&&... args)
+  {
+    return MultiVisitor<Visitor>(std::forward<Visitor>(vis)).visit(args...);
+  }
 
   template <typename T, typename First, typename... Types>
   T*
   get(Variant<First, Types...>* var)
   {
-    return apply_visitor(get_visitor<T>(), *var);
+    return visit(get_visitor<T>(), *var);
   }
 
   template <typename T, typename First, typename... Types>
   const T*
   get(const Variant<First, Types...>* var)
   {
-    return apply_visitor(get_visitor<const T>(), *var);
+    return visit(get_visitor<const T>(), *var);
   }
 
   template <typename T, typename First, typename... Types>
   T&
   get (Variant<First, Types...>& var)
   {
-    T* t = apply_visitor(get_visitor<T>(), var);
+    T* t = visit(get_visitor<T>(), var);
     if (t == nullptr){throw bad_get();}
 
     return *t;
@@ -712,7 +801,7 @@ namespace Juice
   const T&
   get (const Variant<First, Types...>& var)
   {
-    const T* t = apply_visitor(get_visitor<const T>(), var);
+    const T* t = visit(get_visitor<const T>(), var);
     if (t == nullptr) {throw bad_get();}
 
     return *t;
@@ -725,7 +814,7 @@ namespace Juice
     operator()(Visitor&& visitor, Visitable&& visitable, Args&&... args)
     -> decltype
       (
-        apply_visitor
+        visit
         (
           std::forward<Visitor>(visitor),
           std::forward<Visitable>(visitable),
@@ -733,7 +822,7 @@ namespace Juice
         )
       )
     {
-      return apply_visitor
+      return visit
       (
         std::forward<Visitor>(visitor),
         std::forward<Visitable>(visitable),
@@ -756,6 +845,11 @@ namespace Juice
     typename Visitable2
   >
   typename std::remove_reference<Visitor>::type::result_type
+#ifdef __has_cpp_attribute
+#if __has_cpp_attribute(deprecated) >= 201309
+  [[deprecated("Use the general visit function")]]
+#endif
+#endif
   apply_visitor_binary(Visitor&& visitor, Visitable1&& v1, Visitable2&& v2)
   {
     detail::BinaryVisitor<Visitor, Visitable1> v{
@@ -763,7 +857,7 @@ namespace Juice
       std::forward<Visitable1>(v1)
     };
 
-    return apply_visitor(v, std::forward<Visitable2>(v2));
+    return visit(v, std::forward<Visitable2>(v2));
   }
 
   template <template <typename> class Compare>
@@ -800,7 +894,7 @@ namespace Juice
       }
       else if (v.which() == w.which())
       {
-        return apply_visitor_binary(RelationalVisitor<Compare>(), v, w);
+        return visit(RelationalVisitor<Compare>(), v, w);
       }
       else
       {
@@ -836,113 +930,6 @@ namespace Juice
   {
     return !VariantCompare<std::less>()(v, w);
   }
-
-  template <typename Visitor, typename... Visited>
-  struct MultiVisitor;
-
-#if 0
-  template <typename Visitor>
-  struct MultiVisitor<Visitor>
-  {
-    MultiVisitor(Visitor& vis)
-    : m_vis(vis)
-    {
-    }
-
-    template <typename... Values>
-    auto
-    operator()(Values&&... values)
-    {
-      return m_vis(values...);
-    }
-
-    private:
-    Visitor& m_vis;
-  };
-#endif
-
-  template <typename Visitor, typename... Values>
-  decltype(auto)
-  visit(Visitor&& vis, Values&&... args)
-  {
-    return MultiVisitor<Visitor>(std::forward<Visitor>(vis)).visit(args...);
-  }
-
-  template <typename Visitor, typename... Visited>
-  class MultiVisitor
-  {
-    public:
-
-    constexpr
-    MultiVisitor(Visitor&& vis, Visited&&... vs)
-    : m_vis(vis)
-    , m_vs(vs...)
-    {
-    }
-
-    template <typename First, int... I>
-    constexpr
-    auto
-    make_multi(Visitor&& v, std::integer_sequence<int, I...>, First&& f)
-    {
-      return MultiVisitor<Visitor, Visited..., First>(v,
-        std::get<I>(m_vs)..., std::forward<First>(f));
-    }
-
-    template <typename First, typename... Values>
-    decltype(auto)
-    operator()(First&& f, Values&&... values)
-    {
-      return 
-        make_multi(m_vis, 
-          std::make_integer_sequence<int, sizeof...(Visited)>(), 
-          std::forward<First>(f))
-        .visit(std::forward<Values>(values)...);
-    }
-
-#if 0
-    template <int... I, typename... Values>
-    auto
-    do_visit(const std::integer_sequence<int, I...>&, Values&&... values)
-    {
-      //m_last.apply_visitor(
-      //  MultiVisitor<Visitor, Visitable...>(m_vis, std::get<I>(m_vs)...),
-      //  values...
-      //);
-
-      std::get<sizeof...(Visitable)-2>(m_vs).apply_visitor(
-      );
-    }
-#endif
-
-    template <typename... Types, typename... Args>
-    decltype(auto)
-    visit(Variant<Types...>& var, Args&&... args)
-    {
-      return var.apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
-    }
-
-    template <int... I, typename... Args>
-    decltype(auto)
-    do_visit(std::integer_sequence<int, I...>, Visitor&& v, Args&&... args)
-    {
-      return v(std::get<I>(m_vs)..., std::forward<Args>(args)...);
-    }
-
-    template <typename... Args>
-    decltype(auto)
-    visit(Args&&... args)
-    {
-      return do_visit(std::make_integer_sequence<int, sizeof...(Visited)>(),
-        std::forward<Visitor>(m_vis), std::forward<Args>(args)...);
-    }
-
-    private:
-    Visitor&& m_vis;
-    std::tuple<Visited&...> m_vs;
-  };
-
-
 }
 
 #endif
