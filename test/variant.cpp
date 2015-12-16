@@ -54,6 +54,11 @@ class MyVisitor : public static_visitor<int>
   {
     return s.size();
   }
+
+  int operator()() const
+  {
+    return 0;
+  }
 };
 
 struct MyStruct
@@ -86,12 +91,17 @@ struct Multiple
 {
   template <typename A, typename B>
   void
-  operator()(A a, B b)
+  operator()(A a, B b) const
   {
     std::cout << "Multiple visitor" << std::endl;
     std::cout << typeid(A).name() << std::endl;
     std::cout << "(" << a << ", " << b << ")"
       << std::endl;
+  }
+
+  void
+  operator()() const
+  {
   }
 };
 
@@ -127,6 +137,12 @@ foo()
 
   Multiple m;
   visit(m, a, s);
+
+  //use empty constructor
+  MyVariant d(b);
+
+  //empty assignment
+  d = a;
 }
 
 int main(int argc, char** argv)

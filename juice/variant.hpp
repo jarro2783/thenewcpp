@@ -55,7 +55,9 @@ namespace juice
   }
 
   template <typename R = void>
-  class static_visitor
+  class
+  [[deprecated("result_type is not used anymore")]]
+  static_visitor
   {
     public:
     typedef R result_type;
@@ -286,6 +288,11 @@ namespace juice
         typedef result
           (*whichCaller)(Internal&&, VoidPtrCV&&, Visitor&&, Args&&...);
 
+        if (which == size_t(-1))
+        {
+          return visitor();
+        }
+
         static whichCaller callers[sizeof...(AllTypes)] =
           {
             &visitor_caller<Internal&&, AllTypes,
@@ -333,6 +340,12 @@ namespace juice
       {
       }
 
+      void
+      operator()() const
+      {
+        //don't do anything if the rhs is empty
+      }
+
       template <typename T>
       void
       operator()(const T& rhs) const
@@ -348,6 +361,11 @@ namespace juice
     {
       move_constructor(Variant& self)
       : m_self(self)
+      {
+      }
+
+      void
+      operator()() const
       {
       }
 
@@ -369,6 +387,14 @@ namespace juice
       {
       }
 
+      void
+      operator()()
+      {
+        //if the right-hand side is empty then we need to
+        //destroy the lhs
+        m_self.destroy();
+      }
+
       template <typename Rhs>
       void
       operator()(const Rhs& rhs) const
@@ -381,8 +407,10 @@ namespace juice
         else
         {
           Rhs tmp(rhs);
-          m_self.destroy(); //nothrow
-          m_self.construct(std::move(tmp)); //nothrow (please)
+          m_self.destroy();
+
+          //if this throws, then we are already empty
+          m_self.construct(std::move(tmp));
         }
       }
 
@@ -396,6 +424,14 @@ namespace juice
       move_assigner(Variant& self, int rhs_which)
       : m_self(self), m_rhs_which(rhs_which)
       {
+      }
+
+      //the rhs is empty
+      void
+      operator()() const
+      {
+        //same as assignment
+        m_self.destroy();
       }
 
       template <typename Rhs>
@@ -416,9 +452,13 @@ namespace juice
           //the same type as self, which means that it is in a
           //recursive_wrapper, and recursive_wrapper move assignment only
           //copies its pointer
+
+          //if this throws we are ok because tmp will not exist and
+          //m_self will still be consistent
           Variant tmp(std::move(m_self));
-          m_self.construct(std::move(rhs)); //nothrow (please)
-          //m_self.destroy(); //nothrow
+
+          //now m_self is empty, if this throws then we are all good
+          m_self.construct(std::move(rhs));
         }
       }
 
@@ -434,6 +474,13 @@ namespace juice
       {
       }
 
+      bool
+      operator()() const
+      {
+        //not equal when something is empty
+        return false;
+      }
+
       template <typename Rhs>
       bool
       operator()(Rhs& rhs) const
@@ -447,6 +494,12 @@ namespace juice
 
     struct destroyer
     {
+      void
+      operator()() const
+      {
+        //do nothing when empty
+      }
+
       template <typename T>
       void
       operator()(T& t) const
@@ -491,10 +544,8 @@ namespace juice
 
     Variant()
     {
-      //try to construct First
-      //if this fails then First is not default constructible
-      construct(First());
-      indicate_which(0);
+      //we are empty when constructed with no arguments
+      indicate_which(-1);
     }
 
     ~Variant()
@@ -541,6 +592,10 @@ namespace juice
     {
       rhs.apply_visitor_internal(move_constructor(*this));
       indicate_which(rhs.which());
+
+      //rhs will now be empty
+      //if the move throws, then nothing changes
+      rhs.indicate_which(-1);
     }
 
     Variant& operator=(const Variant& rhs)
@@ -560,6 +615,8 @@ namespace juice
         auto w = rhs.which();
         rhs.apply_visitor_internal(move_assigner(*this, w));
         indicate_which(w);
+        //the rhs is now empty
+        rhs.indicate_which(-1);
       }
       return *this;
     }
@@ -576,6 +633,8 @@ namespace juice
     }
 
     int which() const {return m_which;}
+
+    int index() const { return m_which; }
 
     template <typename Internal, typename Visitor, typename... Args>
     decltype(auto)
@@ -625,7 +684,12 @@ namespace juice
     void
     destroy()
     {
-      apply_visitor_internal(destroyer());
+      //shortcut here to bypass calling the empty destroy function
+      if (index() != -1)
+      {
+        apply_visitor_internal(destroyer());
+        indicate_which(-1);
+      }
     }
 
     template <typename T>
@@ -713,6 +777,21 @@ namespace juice
         std::forward<Visitor>(v),
         std::get<I>(m_vs)...,
         std::forward<First>(f));
+    }
+
+    decltype(auto)
+    operator()() const
+    {
+      //this is an interesting case, if one of the values is empty,
+      //what can we return here? We should probably return the empty case
+      //of the base visitor
+      //although is it interesting for anyone that we allow arbitrary
+      //variants in the multi visit to be empty? If we do, then the number
+      //of functions needed to handle this grows quickly, a three visitor
+      //would require all possible binary and unary cases,
+      //although a variadic pack takes care of anything that you don't care
+      //about if you only want to cover a few cases.
+      return m_vis();
     }
 
     template <typename First, typename... Values>
@@ -866,19 +945,24 @@ namespace juice
   template <template <typename> class Compare>
   struct RelationalVisitor
   {
-    typedef bool result_type;
-
     template <typename T, typename U>
     bool
-    operator()(const T& t, const U& u)
+    operator()(const T& t, const U& u) const
     {
       //this one should never be called
       assert(false);
     }
 
+    bool
+    operator()() const
+    {
+      //always false if one is empty
+      return false;
+    }
+
     template <typename T>
     bool
-    operator()(const T& a, const T& b)
+    operator()(const T& a, const T& b) const
     {
       return Compare<T>()(a, b);
     }
