@@ -1,5 +1,6 @@
 rule cxx
     command = g++ $in -o $out -c -O3 -Wall -std=c++14 -MMD -MF $out.d -I.
+    depfile = $out.d
 
 rule cxx_link
     command = g++ $in -o $out

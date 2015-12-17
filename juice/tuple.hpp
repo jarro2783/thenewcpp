@@ -38,3 +38,18 @@ namespace juice
   {
   };
 }
+
+namespace std
+{
+
+  template <typename... Types>
+  struct tuple_size<juice::Variant<Types...>> :
+    public std::integral_constant<size_t, sizeof...(Types)>
+  {
+  };
+
+  template <size_t I, typename... Types>
+  class tuple_element<I, juice::Variant<Types...>>
+    : public tuple_element<I, tuple<Types...>> { };
+
+}

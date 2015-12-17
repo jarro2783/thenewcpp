@@ -59,6 +59,8 @@ namespace juice
 
   template <typename T> struct emplaced_type_t{};
   //template <typename T> constexpr emplaced_type_t<T> emplaced_type;
+  template <size_t I> struct emplaced_index_t {};
+  //template <size_t I> constexpr emplaced_index_t<T> emplaced_index;
 
   template <typename R = void>
   class
@@ -628,7 +630,27 @@ namespace juice
       Args&&... args)
     {
       emplace<T>(il, std::forward<Args>(args)...);
+      indicate_which(tuple_find<T, Variant<First, Types...>>::value);
     }
+
+    template <size_t I, typename... Args>
+    explicit Variant(emplaced_index_t<I>, Args&&... args)
+    {
+      emplace<typename std::tuple_element<I, Variant>::type>(
+        std::forward<Args>(args)...);
+      indicate_which(I);
+    }
+
+    template <size_t I, typename U, typename... Args>
+    explicit Variant(emplaced_index_t<I>,
+      std::initializer_list<U> il,
+      Args&&... args)
+    {
+      emplace<typename std::tuple_element<I, Variant>::type>(
+        il, std::forward<Args>(args)...);
+      indicate_which(I);
+    }
+
 
     Variant& operator=(const Variant& rhs)
     {

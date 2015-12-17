@@ -34,7 +34,7 @@ do so, all subject to the following:
 
 #include <juice/variant.hpp>
 
-using namespace Juice;
+using namespace juice;
 
 typedef Variant<int, std::string> MyVariant;
 
@@ -143,6 +143,8 @@ foo()
 
   //empty assignment
   d = a;
+
+  MyVariant emplaced(emplaced_index_t<1>(), "test");
 }
 
 int main(int argc, char** argv)
