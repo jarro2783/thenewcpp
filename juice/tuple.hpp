@@ -3,7 +3,7 @@
 namespace juice
 {
   template <typename First, typename... Types>
-  class Variant;
+  class variant;
 
   static constexpr const size_t tuple_not_found = (size_t) -1;
   template <typename T, typename U> struct tuple_find;
@@ -33,7 +33,7 @@ namespace juice
   };
 
   template <typename T, typename... Types>
-  struct tuple_find<T, Variant<Types...>> :
+  struct tuple_find<T, variant<Types...>> :
     public tuple_find<T, std::tuple<Types...>>
   {
   };
@@ -43,13 +43,13 @@ namespace std
 {
 
   template <typename... Types>
-  struct tuple_size<juice::Variant<Types...>> :
+  struct tuple_size<juice::variant<Types...>> :
     public std::integral_constant<size_t, sizeof...(Types)>
   {
   };
 
   template <size_t I, typename... Types>
-  class tuple_element<I, juice::Variant<Types...>>
+  class tuple_element<I, juice::variant<Types...>>
     : public tuple_element<I, tuple<Types...>> { };
 
 }

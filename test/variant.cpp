@@ -1,4 +1,4 @@
-/* Test file for Juice::Variant
+/* Test file for Juice::variant
    Copyright (C) 2013 Jarryd Beck
 
 Distributed under the Boost Software License, Version 1.0
@@ -36,7 +36,7 @@ do so, all subject to the following:
 
 using namespace juice;
 
-typedef Variant<int, std::string> MyVariant;
+typedef variant<int, std::string> MyVariant;
 
 class MyVisitor : public static_visitor<int>
 {
@@ -85,7 +85,7 @@ struct MyStruct
   int x;
 };
 
-typedef Juice::Variant<MyStruct, int> ComplexVariant;
+typedef Juice::variant<MyStruct, int> ComplexVariant;
 
 struct Multiple
 {

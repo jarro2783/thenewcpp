@@ -252,7 +252,7 @@ namespace juice
   }
 
   template <typename First, typename... Types>
-  class Variant
+  class variant
   {
     private:
 
@@ -343,7 +343,7 @@ namespace juice
 
     struct constructor
     {
-      constructor(Variant& self)
+      constructor(variant& self)
       : m_self(self)
       {
       }
@@ -362,12 +362,12 @@ namespace juice
       }
 
       private:
-      Variant& m_self;
+      variant& m_self;
     };
 
     struct move_constructor
     {
-      move_constructor(Variant& self)
+      move_constructor(variant& self)
       : m_self(self)
       {
       }
@@ -385,12 +385,12 @@ namespace juice
       }
 
       private:
-      Variant& m_self;
+      variant& m_self;
     };
 
     struct assigner
     {
-      assigner(Variant& self, int rhs_which)
+      assigner(variant& self, int rhs_which)
       : m_self(self), m_rhs_which(rhs_which)
       {
       }
@@ -423,13 +423,13 @@ namespace juice
       }
 
       private:
-      Variant& m_self;
+      variant& m_self;
       int m_rhs_which;
     };
     
     struct move_assigner
     {
-      move_assigner(Variant& self, int rhs_which)
+      move_assigner(variant& self, int rhs_which)
       : m_self(self), m_rhs_which(rhs_which)
       {
       }
@@ -463,7 +463,7 @@ namespace juice
 
           //if this throws we are ok because tmp will not exist and
           //m_self will still be consistent
-          Variant tmp(std::move(m_self));
+          variant tmp(std::move(m_self));
 
           //now m_self is empty, if this throws then we are all good
           m_self.construct(std::move(rhs));
@@ -471,13 +471,13 @@ namespace juice
       }
 
       private:
-      Variant& m_self;
+      variant& m_self;
       int m_rhs_which;
     };
 
     struct equality
     {
-      equality(const Variant& self)
+      equality(const variant& self)
       : m_self(self)
       {
       }
@@ -497,7 +497,7 @@ namespace juice
       }
 
       private:
-      const Variant& m_self;
+      const variant& m_self;
     };
 
     struct destroyer
@@ -527,14 +527,14 @@ namespace juice
       using base::initialise;
 
       static void 
-      initialise(Variant& v, Current&& current)
+      initialise(variant& v, Current&& current)
       {
         v.construct(std::move(current));
         v.indicate_which(Which);
       }
 
       static void
-      initialise(Variant& v, const Current& current)
+      initialise(variant& v, const Current& current)
       {
         v.construct(current);
         v.indicate_which(Which);
@@ -555,20 +555,20 @@ namespace juice
         std::is_default_constructible<First>::value
       >::type
     >
-    Variant() noexcept(std::is_nothrow_default_constructible<First>::value)
+    variant() noexcept(std::is_nothrow_default_constructible<First>::value)
     : m_which(0)
     {
       emplace<First>();
     }
 
-    ~Variant()
+    ~variant()
     {
       destroy();
     }
 
-    //enable_if disables this function if we are constructing with a Variant.
-    //Unfortunately, this becomes Variant(Variant&) which is a better match
-    //than Variant(const Variant& rhs), so it is chosen. Therefore, we disable
+    //enable_if disables this function if we are constructing with a variant.
+    //Unfortunately, this becomes variant(variant&) which is a better match
+    //than variant(const variant& rhs), so it is chosen. Therefore, we disable
     //it.
     template 
     <
@@ -578,30 +578,30 @@ namespace juice
         <
           !std::is_same
           <
-            typename std::remove_reference<Variant<First, Types...>>::type,
+            typename std::remove_reference<variant<First, Types...>>::type,
             typename std::remove_reference<T>::type
           >::value,
           T
         >::type
     >
-    Variant(T&& t)
+    variant(T&& t)
     {
        static_assert(
-          !std::is_same<Variant<First, Types...>&, T>::value, 
-          "why is Variant(T&&) instantiated with a Variant?");
+          !std::is_same<variant<First, Types...>&, T>::value,
+          "why is variant(T&&) instantiated with a variant?");
 
       //compile error here means that T is not unambiguously convertible to
       //any of the types in (First, Types...)
       initialiser<0, First, Types...>::initialise(*this, std::forward<T>(t));
     }
 
-    Variant(const Variant& rhs)
+    variant(const variant& rhs)
     {
       rhs.apply_visitor_internal(constructor(*this));
       indicate_which(rhs.which());
     }
 
-    Variant(Variant&& rhs)
+    variant(variant&& rhs)
     noexcept(conjunction<std::is_nothrow_move_constructible<First>::value,
       std::is_nothrow_move_constructible<Types>::value...>::value)
     {
@@ -612,47 +612,47 @@ namespace juice
     }
 
     template <typename T>
-    Variant(const T& t)
+    variant(const T& t)
     {
       initialiser<0, First, Types...>::initialise(*this, t);
     }
 
     template <typename T, typename... Args>
-    explicit Variant(emplaced_type_t<T>, Args&&... args)
+    explicit variant(emplaced_type_t<T>, Args&&... args)
     {
       emplace<T>(std::forward<Args>(args)...);
-      indicate_which(tuple_find<T, Variant<First, Types...>>::value);
+      indicate_which(tuple_find<T, variant<First, Types...>>::value);
     }
 
     template <typename T, typename U, typename... Args>
-    explicit Variant(emplaced_type_t<T>,
+    explicit variant(emplaced_type_t<T>,
       std::initializer_list<U> il,
       Args&&... args)
     {
       emplace<T>(il, std::forward<Args>(args)...);
-      indicate_which(tuple_find<T, Variant<First, Types...>>::value);
+      indicate_which(tuple_find<T, variant<First, Types...>>::value);
     }
 
     template <size_t I, typename... Args>
-    explicit Variant(emplaced_index_t<I>, Args&&... args)
+    explicit variant(emplaced_index_t<I>, Args&&... args)
     {
-      emplace<typename std::tuple_element<I, Variant>::type>(
+      emplace<typename std::tuple_element<I, variant>::type>(
         std::forward<Args>(args)...);
       indicate_which(I);
     }
 
     template <size_t I, typename U, typename... Args>
-    explicit Variant(emplaced_index_t<I>,
+    explicit variant(emplaced_index_t<I>,
       std::initializer_list<U> il,
       Args&&... args)
     {
-      emplace<typename std::tuple_element<I, Variant>::type>(
+      emplace<typename std::tuple_element<I, variant>::type>(
         il, std::forward<Args>(args)...);
       indicate_which(I);
     }
 
 
-    Variant& operator=(const Variant& rhs)
+    variant& operator=(const variant& rhs)
     {
       if (this != &rhs)
       {
@@ -662,7 +662,7 @@ namespace juice
       return *this;
     }
 
-    Variant& operator=(Variant&& rhs)
+    variant& operator=(variant&& rhs)
     {
       if (this != &rhs)
       {
@@ -676,7 +676,7 @@ namespace juice
     }
 
     bool
-    operator==(const Variant& rhs) const
+    operator==(const variant& rhs) const
     {
       if (which() != rhs.which())
       {
@@ -763,7 +763,7 @@ namespace juice
   };
 
   template <typename... Types>
-  using variant = Variant<Types...>;
+  using Variant = variant<Types...>;
 
   struct bad_get : public std::exception
   {
@@ -868,21 +868,21 @@ namespace juice
 
     template <typename... Types, typename... Args>
     decltype(auto)
-    visit(const Variant<Types...>& var, Args&&... args)
+    visit(const variant<Types...>& var, Args&&... args)
     {
       return var.apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
     }
 
     template <typename... Types, typename... Args>
     decltype(auto)
-    visit(Variant<Types...>& var, Args&&... args)
+    visit(variant<Types...>& var, Args&&... args)
     {
       return var.apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
     }
 
     template <typename... Types, typename... Args>
     decltype(auto)
-    visit(Variant<Types...>&& var, Args&&... args)
+    visit(variant<Types...>&& var, Args&&... args)
     {
       return std::move(var)
         .apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
@@ -918,21 +918,21 @@ namespace juice
 
   template <typename T, typename First, typename... Types>
   T*
-  get(Variant<First, Types...>* var)
+  get(variant<First, Types...>* var)
   {
     return visit(get_visitor<T>(), *var);
   }
 
   template <typename T, typename First, typename... Types>
   const T*
-  get(const Variant<First, Types...>* var)
+  get(const variant<First, Types...>* var)
   {
     return visit(get_visitor<const T>(), *var);
   }
 
   template <typename T, typename First, typename... Types>
   T&
-  get (Variant<First, Types...>& var)
+  get (variant<First, Types...>& var)
   {
     T* t = visit(get_visitor<T>(), var);
     if (t == nullptr){throw bad_get();}
@@ -942,7 +942,7 @@ namespace juice
 
   template <typename T, typename First, typename... Types>
   const T&
-  get (const Variant<First, Types...>& var)
+  get (const variant<First, Types...>& var)
   {
     const T* t = visit(get_visitor<const T>(), var);
     if (t == nullptr) {throw bad_get();}
@@ -1030,11 +1030,11 @@ namespace juice
   };
 
   template <template <typename> class Compare>
-  struct VariantCompare
+  struct variantCompare
   {
     template <typename... Types>
     bool
-    operator()(const Variant<Types...>& v, const Variant<Types...>& w)
+    operator()(const variant<Types...>& v, const variant<Types...>& w)
     {
       if (Compare<int>()(v.which(), w.which()))
       {
@@ -1053,30 +1053,30 @@ namespace juice
 
   template <typename... Types>
   bool
-  operator<(const Variant<Types...>& v, const Variant<Types...>& w)
+  operator<(const variant<Types...>& v, const variant<Types...>& w)
   {
-    return VariantCompare<std::less>()(v, w);
+    return variantCompare<std::less>()(v, w);
   }
 
   template <typename... Types>
   bool
-  operator>(const Variant<Types...>& v, const Variant<Types...>& w)
+  operator>(const variant<Types...>& v, const variant<Types...>& w)
   {
-    return VariantCompare<std::greater>()(v, w);
+    return variantCompare<std::greater>()(v, w);
   }
 
   template <typename... Types>
   bool
-  operator<=(const Variant<Types...>& v, const Variant<Types...>& w)
+  operator<=(const variant<Types...>& v, const variant<Types...>& w)
   {
-    return !VariantCompare<std::greater>()(w, v);
+    return !variantCompare<std::greater>()(w, v);
   }
 
   template <typename... Types>
   bool
-  operator>=(const Variant<Types...>& v, const Variant<Types...>& w)
+  operator>=(const variant<Types...>& v, const variant<Types...>& w)
   {
-    return !VariantCompare<std::less>()(v, w);
+    return !variantCompare<std::less>()(v, w);
   }
 }
 
