@@ -10,3 +10,7 @@
 *.lai
 *.la
 *.a
+
+#ninja files
+.ninja_deps
+.ninja_log
