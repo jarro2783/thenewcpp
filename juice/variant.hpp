@@ -44,6 +44,7 @@ do so, all subject to the following:
 #include <type_traits>
 #include <utility>
 
+#include "conjunction.hpp"
 #include "mpl.hpp"
 
 namespace juice
@@ -542,10 +543,15 @@ namespace juice
 
     public:
 
-    Variant()
+    template <typename = typename
+      std::enable_if<
+        std::is_default_constructible<First>::value
+      >::type
+    >
+    Variant() noexcept(std::is_nothrow_default_constructible<First>::value)
+    : m_which(0)
     {
-      //we are empty when constructed with no arguments
-      indicate_which(-1);
+      emplace<First>();
     }
 
     ~Variant()
@@ -589,13 +595,19 @@ namespace juice
     }
 
     Variant(Variant&& rhs)
+    noexcept(conjunction<std::is_nothrow_move_constructible<First>::value,
+      std::is_nothrow_move_constructible<Types>::value...>::value)
     {
+      //this does not invalidate rhs, it moves the value in rhs to this,
+      //which leaves an empty but valid value in rhs
       rhs.apply_visitor_internal(move_constructor(*this));
       indicate_which(rhs.which());
+    }
 
-      //rhs will now be empty
-      //if the move throws, then nothing changes
-      rhs.indicate_which(-1);
+    template <typename T>
+    Variant(const T& t)
+    {
+      initialiser<0, First, Types...>::initialise(*this, t);
     }
 
     Variant& operator=(const Variant& rhs)
@@ -690,6 +702,13 @@ namespace juice
         apply_visitor_internal(destroyer());
         indicate_which(-1);
       }
+    }
+
+    template <typename T, typename... Args>
+    void
+    emplace(Args&&... args)
+    {
+      new(&m_storage) T(std::forward<Args>(args)...);
     }
 
     template <typename T>
