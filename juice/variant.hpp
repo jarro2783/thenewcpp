@@ -662,7 +662,14 @@ namespace juice
       return *this;
     }
 
-    variant& operator=(variant&& rhs)
+    variant& operator=(variant&& rhs) 
+    noexcept(
+      conjunction<(
+        std::is_nothrow_move_constructible<Types>::value &&
+        std::is_nothrow_move_assignable<Types>::value
+      )...
+      >::value
+    )
     {
       if (this != &rhs)
       {
