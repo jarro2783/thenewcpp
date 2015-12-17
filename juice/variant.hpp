@@ -40,12 +40,14 @@ do so, all subject to the following:
 
 #include <cassert>
 #include <functional>
+#include <initializer_list>
 #include <new>
 #include <type_traits>
 #include <utility>
 
 #include "conjunction.hpp"
 #include "mpl.hpp"
+#include "tuple.hpp"
 
 namespace juice
 {
@@ -54,6 +56,9 @@ namespace juice
     struct true_ {};
     struct false_ {};
   }
+
+  template <typename T> struct emplaced_type_t{};
+  //template <typename T> constexpr emplaced_type_t<T> emplaced_type;
 
   template <typename R = void>
   class
@@ -608,6 +613,21 @@ namespace juice
     Variant(const T& t)
     {
       initialiser<0, First, Types...>::initialise(*this, t);
+    }
+
+    template <typename T, typename... Args>
+    explicit Variant(emplaced_type_t<T>, Args&&... args)
+    {
+      emplace<T>(std::forward<Args>(args)...);
+      indicate_which(tuple_find<T, Variant<First, Types...>>::value);
+    }
+
+    template <typename T, typename U, typename... Args>
+    explicit Variant(emplaced_type_t<T>,
+      std::initializer_list<U> il,
+      Args&&... args)
+    {
+      emplace<T>(il, std::forward<Args>(args)...);
     }
 
     Variant& operator=(const Variant& rhs)
