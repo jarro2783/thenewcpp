@@ -251,10 +251,12 @@ namespace juice
   {
   }
 
-  template <typename First, typename... Types>
+  template <typename... Types>
   class variant
   {
     private:
+
+    typedef typename detail::pack_first<Types...>::type First;
 
     template <typename... AllTypes>
     struct do_visit
@@ -337,7 +339,6 @@ namespace juice
       max
       <
         Sizeof,
-        First,
         Types...
       >::value;
 
@@ -578,7 +579,7 @@ namespace juice
         <
           !std::is_same
           <
-            typename std::remove_reference<variant<First, Types...>>::type,
+            typename std::remove_reference<variant<Types...>>::type,
             typename std::remove_reference<T>::type
           >::value,
           T
@@ -587,12 +588,12 @@ namespace juice
     variant(T&& t)
     {
        static_assert(
-          !std::is_same<variant<First, Types...>&, T>::value,
+          !std::is_same<variant<Types...>&, T>::value,
           "why is variant(T&&) instantiated with a variant?");
 
       //compile error here means that T is not unambiguously convertible to
       //any of the types in (First, Types...)
-      initialiser<0, First, Types...>::initialise(*this, std::forward<T>(t));
+      initialiser<0, Types...>::initialise(*this, std::forward<T>(t));
     }
 
     variant(const variant& rhs)
@@ -614,14 +615,14 @@ namespace juice
     template <typename T>
     variant(const T& t)
     {
-      initialiser<0, First, Types...>::initialise(*this, t);
+      initialiser<0, Types...>::initialise(*this, t);
     }
 
     template <typename T, typename... Args>
     explicit variant(emplaced_type_t<T>, Args&&... args)
     {
       emplace<T>(std::forward<Args>(args)...);
-      indicate_which(tuple_find<T, variant<First, Types...>>::value);
+      indicate_which(tuple_find<T, variant<Types...>>::value);
     }
 
     template <typename T, typename U, typename... Args>
@@ -630,7 +631,7 @@ namespace juice
       Args&&... args)
     {
       emplace<T>(il, std::forward<Args>(args)...);
-      indicate_which(tuple_find<T, variant<First, Types...>>::value);
+      indicate_which(tuple_find<T, variant<Types...>>::value);
     }
 
     template <size_t I, typename... Args>
@@ -701,7 +702,7 @@ namespace juice
     decltype(auto)
     apply_visitor(Visitor&& visitor, Args&&... args)
     {
-      return do_visit<First, Types...>()(Internal(), m_which, &m_storage,
+      return do_visit<Types...>()(Internal(), m_which, &m_storage,
         std::forward<Visitor>(visitor), std::forward<Args>(args)...);
     }
 
@@ -709,14 +710,14 @@ namespace juice
     decltype(auto)
     apply_visitor(Visitor&& visitor, Args&&... args) const
     {
-      return do_visit<First, Types...>()(Internal(), m_which, &m_storage,
+      return do_visit<Types...>()(Internal(), m_which, &m_storage,
         std::forward<Visitor>(visitor), std::forward<Args>(args)...);
     }
 
     private:
 
     typename 
-      std::aligned_storage<m_size, max<Alignof, First, Types...>::value>::type
+      std::aligned_storage<m_size, max<Alignof, Types...>::value>::type
       m_storage;
 
     int m_which;

@@ -83,6 +83,15 @@ namespace juice
 
       typedef typename m_next::type type;
     };
+
+    template <typename... Types>
+    struct pack_first;
+
+    template <typename First, typename... Types>
+    struct pack_first<First, Types...>
+    {
+      typedef First type;
+    };
   }
 
   template <template <typename> class Size, typename... Args>

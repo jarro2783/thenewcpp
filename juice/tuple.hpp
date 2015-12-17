@@ -2,7 +2,7 @@
 
 namespace juice
 {
-  template <typename First, typename... Types>
+  template <typename... Types>
   class variant;
 
   static constexpr const size_t tuple_not_found = (size_t) -1;
