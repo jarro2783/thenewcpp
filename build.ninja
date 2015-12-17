@@ -1,0 +1,9 @@
+rule cxx
+    command = g++ $in -o $out -c -O3 -Wall -std=c++14 -MMD -MF $out.d -I.
+
+rule cxx_link
+    command = g++ $in -o $out
+
+build test/variant.o: cxx test/variant.cpp
+
+build test/variant: cxx_link test/variant.o
