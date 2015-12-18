@@ -549,6 +549,81 @@ namespace juice
       void initialise();
     };
 
+    template <typename Current>
+    static
+    void
+    init_construct(variant& v, const Current& t, MPL::true_)
+    {
+      Current tmp(t);
+      v.destroy();
+      v.construct(std::move(tmp));
+    }
+
+    template <typename Current>
+    static
+    void
+    init_construct(variant& v, const Current& t, MPL::false_)
+    {
+      v.destroy();
+      v.construct(t);
+    }
+
+    template <size_t Which, typename... MyTypes>
+    struct assign_initialise;
+
+    template <size_t Which, typename Current, typename... MyTypes>
+    struct assign_initialise<Which, Current, MyTypes...> 
+      : public assign_initialise<Which+1, MyTypes...>
+    {
+      typedef assign_initialise<Which+1, MyTypes...> base;
+      using base::initialise;
+
+      static void 
+      initialise(variant& v, Current&& t)
+      {
+        if (v.index() == Which)
+        {
+          *reinterpret_cast<Current*>(&v.m_storage) = std::move(t);
+        }
+        else
+        {
+          v.destroy();
+          v.construct(std::move(t));
+        }
+        v.indicate_which(Which);
+      }
+
+      static void
+      initialise(variant& v, const Current& t)
+      {
+        if (v.index() == Which)
+        {
+          *reinterpret_cast<Current*>(&v.m_storage) = t;
+          v.indicate_which(Which);
+        }
+        else
+        {
+          init_construct(v, t,
+            typename 
+              std::conditional<std::is_move_constructible<Current>::value,
+                MPL::true_,
+                MPL::false_
+              >::type());
+#if 0
+          else
+#endif
+        }
+      }
+    };
+
+    template <size_t Which>
+    struct assign_initialise<Which>
+    {
+      //this should never match
+      void initialise();
+    };
+
+
     public:
 
     template <typename = typename
@@ -680,6 +755,30 @@ namespace juice
         //the rhs is now empty
         rhs.indicate_which(-1);
       }
+      return *this;
+    }
+
+    template <typename T>
+    variant&
+    operator=(const T& t)
+    {
+      assign_initialise<0, Types...>::initialise(*this, t);
+
+      return *this;
+    }
+
+    template <typename T>
+    variant&
+    operator=(const T&& t) noexcept(
+      conjunction<(
+        std::is_nothrow_move_assignable<Types>::value &&
+        std::is_nothrow_move_constructible<Types>::value
+        )...
+      >::value
+    )
+    {
+      assign_initialise<0, Types...>::initialise(*this, std::forward<T>(t));
+
       return *this;
     }
 

@@ -36,6 +36,16 @@ do so, all subject to the following:
 
 using namespace juice;
 
+struct NotMovable
+{
+  NotMovable() = default;
+  NotMovable(NotMovable&&) = delete;
+  NotMovable(const NotMovable&) = default;
+
+  NotMovable&
+  operator=(const NotMovable&) = default;
+};
+
 typedef variant<int, std::string> MyVariant;
 
 class MyVisitor : public static_visitor<int>
@@ -85,7 +95,7 @@ struct MyStruct
   int x;
 };
 
-typedef Juice::variant<MyStruct, int> ComplexVariant;
+typedef Juice::variant<MyStruct, int, NotMovable> ComplexVariant;
 
 struct Multiple
 {
@@ -129,7 +139,7 @@ foo()
   std::cout << "0 >= 0: " << (a >= b) << std::endl;
 
   ComplexVariant complexa;
-  complexa = ComplexVariant(5);
+  //complexa = ComplexVariant(5);
   a = MyVariant();
 
   //auto delayed = apply_visitor(v);
@@ -145,6 +155,13 @@ foo()
   d = a;
 
   MyVariant emplaced(emplaced_index_t<1>(), "test");
+
+  std::string moveassign = "moveassign";
+  emplaced = "assign";
+  emplaced = moveassign;
+
+  NotMovable notm;
+  complexa = notm;
 }
 
 int main(int argc, char** argv)
