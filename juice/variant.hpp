@@ -425,7 +425,7 @@ namespace juice
 
       private:
       variant& m_self;
-      int m_rhs_which;
+      size_t m_rhs_which;
     };
     
     struct move_assigner
@@ -473,7 +473,7 @@ namespace juice
 
       private:
       variant& m_self;
-      int m_rhs_which;
+      size_t m_rhs_which;
     };
 
     struct equality
@@ -728,6 +728,44 @@ namespace juice
       indicate_which(I);
     }
 
+    template <typename T, typename... Args>
+    void emplace(Args&&... args)
+    {
+      if (valid())
+      {
+        destroy();
+      }
+      emplace_internal<T>(std::forward<Args>(args)...);
+      indicate_which(tuple_find<T, variant>::value);
+    }
+
+    template <typename T, typename U, typename... Args>
+    void emplace(std::initializer_list<U> il, Args&&... args)
+    {
+      if (valid())
+      {
+        destroy();
+      }
+      emplace_internal<T>(il, std::forward<Args>(args)...);
+      indicate_which(tuple_find<T, variant>::value);
+    }
+
+    template <size_t I, typename... Args>
+    void emplace(Args&&... args)
+    {
+      return emplace<typename std::tuple_element<I, variant>::type>(
+        std::forward<Args>(args)...
+      );
+    }
+
+    template <size_t I, typename U, typename... Args>
+    void emplace(std::initializer_list<U> il, Args&&... args)
+    {
+      return emplace<typename std::tuple_element<I, variant>::type>(
+        il,
+        std::forward<Args>(args)...
+      );
+    }
 
     variant& operator=(const variant& rhs)
     {
@@ -794,9 +832,15 @@ namespace juice
       return rhs.apply_visitor_internal(equality(*this));
     }
 
-    int which() const {return m_which;}
+    size_t which() const {return m_which;}
 
-    int index() const { return m_which; }
+    size_t index() const { return m_which; }
+
+    bool
+    valid() const
+    {
+      return m_which != tuple_not_found;
+    }
 
     template <typename Internal, typename Visitor, typename... Args>
     decltype(auto)
@@ -820,11 +864,11 @@ namespace juice
       std::aligned_storage<m_size, max<Alignof, Types...>::value>::type
       m_storage;
 
-    int m_which;
+    size_t m_which;
 
     static std::function<void(void*)> m_handlers[1 + sizeof...(Types)];
 
-    void indicate_which(int which) {m_which = which;}
+    void indicate_which(size_t which) {m_which = which;}
 
     void* address() {return &m_storage;}
     const void* address() const {return &m_storage;}
@@ -847,7 +891,7 @@ namespace juice
     destroy()
     {
       //shortcut here to bypass calling the empty destroy function
-      if (index() != -1)
+      if (index() != tuple_not_found)
       {
         apply_visitor_internal(destroyer());
         indicate_which(-1);
