@@ -1094,12 +1094,12 @@ namespace juice
     typename Visitable1,
     typename Visitable2
   >
-  typename std::remove_reference<Visitor>::type::result_type
 #ifdef __has_cpp_attribute
 #if __has_cpp_attribute(deprecated) >= 201309
   [[deprecated("Use the general visit function")]]
 #endif
 #endif
+  typename std::remove_reference<Visitor>::type::result_type
   apply_visitor_binary(Visitor&& visitor, Visitable1&& v1, Visitable2&& v2)
   {
     detail::BinaryVisitor<Visitor, Visitable1> v{
@@ -1109,6 +1109,7 @@ namespace juice
 
     return visit(v, std::forward<Visitable2>(v2));
   }
+
 
   template <template <typename> class Compare>
   struct RelationalVisitor
