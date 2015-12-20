@@ -635,7 +635,7 @@ namespace juice
     variant() noexcept(std::is_nothrow_default_constructible<First>::value)
     : m_which(0)
     {
-      emplace<First>();
+      emplace_internal<First>();
     }
 
     ~variant()
@@ -697,7 +697,7 @@ namespace juice
     template <typename T, typename... Args>
     explicit variant(emplaced_type_t<T>, Args&&... args)
     {
-      emplace<T>(std::forward<Args>(args)...);
+      emplace_internal<T>(std::forward<Args>(args)...);
       indicate_which(tuple_find<T, variant<Types...>>::value);
     }
 
@@ -706,14 +706,14 @@ namespace juice
       std::initializer_list<U> il,
       Args&&... args)
     {
-      emplace<T>(il, std::forward<Args>(args)...);
+      emplace_internal<T>(il, std::forward<Args>(args)...);
       indicate_which(tuple_find<T, variant<Types...>>::value);
     }
 
     template <size_t I, typename... Args>
     explicit variant(emplaced_index_t<I>, Args&&... args)
     {
-      emplace<typename std::tuple_element<I, variant>::type>(
+      emplace_internal<typename std::tuple_element<I, variant>::type>(
         std::forward<Args>(args)...);
       indicate_which(I);
     }
@@ -723,7 +723,7 @@ namespace juice
       std::initializer_list<U> il,
       Args&&... args)
     {
-      emplace<typename std::tuple_element<I, variant>::type>(
+      emplace_internal<typename std::tuple_element<I, variant>::type>(
         il, std::forward<Args>(args)...);
       indicate_which(I);
     }
@@ -856,7 +856,7 @@ namespace juice
 
     template <typename T, typename... Args>
     void
-    emplace(Args&&... args)
+    emplace_internal(Args&&... args)
     {
       new(&m_storage) T(std::forward<Args>(args)...);
     }
