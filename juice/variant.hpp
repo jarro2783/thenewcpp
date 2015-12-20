@@ -631,6 +631,7 @@ namespace juice
         std::is_default_constructible<First>::value
       >::type
     >
+    constexpr
     variant() noexcept(std::is_nothrow_default_constructible<First>::value)
     : m_which(0)
     {
