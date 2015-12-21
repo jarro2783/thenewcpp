@@ -823,7 +823,7 @@ namespace juice
         rhs.apply_visitor_internal(move_assigner(*this, w));
         indicate_which(w);
         //the rhs is now empty
-        rhs.indicate_which(-1);
+        rhs.indicate_which(tuple_not_found);
       }
       return *this;
     }
@@ -972,7 +972,7 @@ namespace juice
       if (index() != tuple_not_found)
       {
         apply_visitor_internal(destroyer());
-        indicate_which(-1);
+        indicate_which(tuple_not_found);
       }
     }
 
