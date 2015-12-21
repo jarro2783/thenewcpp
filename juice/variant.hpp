@@ -44,6 +44,11 @@ do so, all subject to the following:
 // features are support for recursive types with recursive_wrapper, and
 // the visit function can take arbitrary arguments that are passed on to
 // the visitor.
+//
+// == Notes ==
+// Hash is not yet implemented.
+// Some of the visitors have operator()() lying around from trying a previous
+// proposal with empty visitation.
 
 
 #ifndef JUICE_VARIANT_HPP_INCLUDED
