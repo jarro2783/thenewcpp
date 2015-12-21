@@ -29,11 +29,22 @@ do so, all subject to the following:
 
 */
 
-/**
- * @file variant.hpp
- * A tagged union. This effectively has the same functionality as
- * boost::variant, but replaces it with C++11 features.
- */
+// This file is an implementation of the variant in proposal P0088R0 for C++,
+// http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2015/p0088r0.pdf
+// The needed meta-function tuple_find is implemented in tuple.hpp
+// In summary:
+//   1. It is almost never empty, and visiting an empty variant is undefined.
+//   2. Accessing the wrong element throws. But the variant must still be valid.
+//   3. The copy/move assignment operators follow the exception safety of
+//      the contained types, and guarantee that the variant will not be empty
+//      as long as the last copy or move does not throw.
+//   4. It is adapted to have tuple-like access of its types.
+//
+// This variant is a superset of the standard variant. The two additional
+// features are support for recursive types with recursive_wrapper, and
+// the visit function can take arbitrary arguments that are passed on to
+// the visitor.
+
 
 #ifndef JUICE_VARIANT_HPP_INCLUDED
 #define JUICE_VARIANT_HPP_INCLUDED
@@ -312,10 +323,11 @@ namespace juice
         typedef result
           (*whichCaller)(Internal&&, VoidPtrCV&&, Visitor&&, Args&&...);
 
-        if (which == size_t(-1))
-        {
-          return visitor();
-        }
+        //visiting an empty variant is undefined by the proposal
+        //if (which == size_t(-1))
+        //{
+        //  return visitor();
+        //}
 
         static whichCaller callers[sizeof...(AllTypes)] =
           {
