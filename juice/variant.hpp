@@ -218,6 +218,20 @@ namespace juice
 
   }    
 
+  class bad_variant_access : public std::logic_error
+  {
+    public:
+    explicit bad_variant_access(const std::string& what_arg)
+    : std::logic_error(what_arg)
+    {
+    }
+
+    explicit bad_variant_access(const char* what_arg)
+    : std::logic_error(what_arg)
+    {
+    }
+  };
+
   template 
   <
     typename Internal,
@@ -880,7 +894,7 @@ namespace juice
     {
       if (index() != I)
       {
-        throw "bad_get";
+        throw bad_variant_access("Tuple does not contain requested item");
       }
 
       return *reinterpret_cast<
@@ -896,7 +910,7 @@ namespace juice
     {
       if (index() != I)
       {
-        throw "bad_get";
+        throw bad_variant_access("Tuple does not contain requested item");
       }
 
       return *reinterpret_cast<
