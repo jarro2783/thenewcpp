@@ -58,9 +58,9 @@ namespace juice
   }
 
   template <typename T> struct emplaced_type_t{};
-  //template <typename T> constexpr emplaced_type_t<T> emplaced_type;
+  template <typename T> constexpr emplaced_type_t<T> emplaced_type;
   template <size_t I> struct emplaced_index_t {};
-  //template <size_t I> constexpr emplaced_index_t<T> emplaced_index;
+  template <size_t I> constexpr emplaced_index_t<I> emplaced_index;
 
   template <typename R = void>
   class
@@ -858,6 +858,53 @@ namespace juice
         std::forward<Visitor>(visitor), std::forward<Args>(args)...);
     }
 
+    void
+    swap(variant& rhs)
+    {
+#if 0
+      if (m_which == rhs.index())
+      {
+        swap(get<m_which>(*this), get<m_which>(rhs));
+      }
+      else
+      {
+        swap(*this, rhs);
+      }
+#endif
+    }
+
+    template <size_t I>
+    //typename std::tuple_element<I, variant<Types...>>::type&
+    auto&
+    get() const
+    {
+      if (index() != I)
+      {
+        throw "bad_get";
+      }
+
+      return *reinterpret_cast<
+        const typename std::tuple_element<I, variant<Types...>>::type*>(
+        &m_storage
+      );
+    }
+
+    template <size_t I>
+    //typename std::tuple_element<I, variant<Types...>>::type&
+    auto&
+    get()
+    {
+      if (index() != I)
+      {
+        throw "bad_get";
+      }
+
+      return *reinterpret_cast<
+        typename std::tuple_element<I, variant<Types...>>::type*>(
+        &m_storage
+      );
+    }
+
     private:
 
     typename 
@@ -929,6 +976,12 @@ namespace juice
   struct get_visitor
   {
     typedef T* result_type;
+
+    result_type
+    operator()()
+    {
+      throw bad_get();
+    }
 
     result_type
     operator()(T& val) const
@@ -1068,38 +1121,103 @@ namespace juice
     return MultiVisitor<Visitor>(std::forward<Visitor>(vis)).visit(args...);
   }
 
-  template <typename T, typename First, typename... Types>
-  T*
-  get(variant<First, Types...>* var)
+  // == variant get ==
+
+  // === first the indexed versions ===
+
+  template <size_t I, typename... Types>
+  //typename std::tuple_element<I, variant<Types...>>::type&
+  auto&
+  get(variant<Types...>& v)
   {
-    return visit(get_visitor<T>(), *var);
+    return v.get<I>();
   }
 
-  template <typename T, typename First, typename... Types>
-  const T*
-  get(const variant<First, Types...>* var)
+  template <size_t I, typename... Types>
+  //typename std::tuple_element<I, variant<Types...>>::type&
+  auto&
+  get(const variant<Types...>& v)
   {
-    return visit(get_visitor<const T>(), *var);
+    return v.get<I>();
   }
 
-  template <typename T, typename First, typename... Types>
-  T&
-  get (variant<First, Types...>& var)
+  template <size_t I, typename... Types>
+  auto&&
+  get(variant<Types...>&& v)
   {
-    T* t = visit(get_visitor<T>(), var);
-    if (t == nullptr){throw bad_get();}
-
-    return *t;
+    return std::forward<
+      std::tuple_element_t<I, variant<Types...>>&&>(get<I>(v));
   }
 
-  template <typename T, typename First, typename... Types>
-  const T&
-  get (const variant<First, Types...>& var)
+  template <size_t I, typename... Types>
+  std::remove_reference_t<std::tuple_element_t<I, variant<Types...>>>*
+  get(variant<Types...>* v)
   {
-    const T* t = visit(get_visitor<const T>(), var);
-    if (t == nullptr) {throw bad_get();}
+    if (v->index() != I)
+    {
+      return nullptr;
+    }
 
-    return *t;
+    return &get<I>(*v);
+  }
+
+  template <size_t I, typename... Types>
+  const std::remove_reference_t<std::tuple_element_t<I, variant<Types...>>>*
+  get(const variant<Types...>* v)
+  {
+    if (v->index() != I)
+    {
+      return nullptr;
+    }
+
+    return &get<I>(*v);
+  }
+
+  // === then the type versions ===
+
+  template <typename T, typename... Types>
+  std::remove_reference_t<T>*
+  get(variant<Types...>* var)
+  {
+    //return visit(get_visitor<T>(), *var);
+    return &get<tuple_find<T, variant<Types...>>::value>(var);
+  }
+
+  template <typename T, typename... Types>
+  const std::remove_reference_t<T>*
+  get(const variant<Types...>* var)
+  {
+    //return visit(get_visitor<const T>(), *var);
+    return &get<tuple_find<T, variant<Types...>>::value>(var);
+  }
+
+  template <typename T, typename... Types>
+  std::remove_reference_t<T>&
+  get (variant<Types...>& var)
+  {
+    //T* t = visit(get_visitor<T>(), var);
+    //if (t == nullptr){throw bad_get();}
+
+    //return *t;
+    return get<tuple_find<T, variant<Types...>>::value>(var);
+  }
+
+  template <typename T, typename... Types>
+  const std::remove_reference_t<T>&
+  get (const variant<Types...>& var)
+  {
+    //const T* t = visit(get_visitor<const T>(), &var);
+    //if (t == nullptr) {throw bad_get();}
+
+    //return *t;
+    return get<tuple_find<T, variant<Types...>>::value>(var);
+  }
+
+  template <typename T, typename... Types>
+  T&&
+  get(variant<Types...>&& v)
+  {
+    return get<tuple_find<T, variant<Types...>>::value>(std::move(v));
   }
 
   struct visitor_applier
@@ -1131,6 +1249,12 @@ namespace juice
   variant_is_type(const V& v)
   {
     return get<T>(&v) != nullptr;
+  }
+
+  template <typename T, typename... Types>
+  bool holds_alternative(const variant<Types...>& v)
+  {
+    return variant_is_type<T>(v);
   }
 
   template 

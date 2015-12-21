@@ -48,7 +48,7 @@ struct NotMovable
 
 typedef variant<int, std::string> MyVariant;
 
-class MyVisitor : public static_visitor<int>
+class MyVisitor
 {
   public:
 
@@ -116,6 +116,11 @@ struct Multiple
 };
 
 void
+rvalue(int&&)
+{
+}
+
+void
 foo()
 {
   MyVariant a, b;
@@ -162,6 +167,19 @@ foo()
 
   NotMovable notm;
   complexa = notm;
+
+  auto& integer = get<0>(a);
+  integer = 5;
+  std::cout << juice::get<int>(a) << std::endl;
+
+  rvalue(get<0>(MyVariant()));
+  rvalue(get<int>(MyVariant()));
+
+  const MyVariant ca(5);
+  get<int>(ca);
+  get<0>(ca);
+  get<0>(&ca);
+  get<0>(&a);
 }
 
 int main(int argc, char** argv)
