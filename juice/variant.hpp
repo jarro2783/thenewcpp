@@ -232,7 +232,41 @@ namespace juice
       Visitable& visitable;
     };
 
+    struct
+    swapper
+    {
+      template <typename T>
+      void
+      operator()(T& t, T& rhs)
+      {
+        std::swap(t, rhs);
+      }
+
+      template <typename T, typename U>
+      void
+      operator()(T&, U&)
+      {
+        //this should never be called
+        assert(false);
+      }
+    };
+
   }    
+
+  struct monostate {};
+
+  constexpr bool operator<(const monostate&, const monostate&)
+  { return false; }
+  constexpr bool operator>(const monostate&, const monostate&)
+  { return false; }
+  constexpr bool operator<=(const monostate&, const monostate&)
+  { return true; }
+  constexpr bool operator>=(const monostate&, const monostate&)
+  { return true; }
+  constexpr bool operator==(const monostate&, const monostate&)
+  { return true; }
+  constexpr bool operator!=(const monostate&, const monostate&)
+  { return false; }
 
   class bad_variant_access : public std::logic_error
   {
@@ -892,16 +926,14 @@ namespace juice
     void
     swap(variant& rhs)
     {
-#if 0
       if (m_which == rhs.index())
       {
-        swap(get<m_which>(*this), get<m_which>(rhs));
+        apply_visitor(detail::swapper(), *this, rhs);
       }
       else
       {
         swap(*this, rhs);
       }
-#endif
     }
 
     template <size_t I>
@@ -977,6 +1009,7 @@ namespace juice
     }
 
     template <typename T, typename... Args>
+    constexpr
     void
     emplace_internal(Args&&... args)
     {
@@ -984,6 +1017,7 @@ namespace juice
     }
 
     template <typename T>
+    constexpr
     void
     construct(T&& t)
     {
