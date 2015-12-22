@@ -58,6 +58,7 @@ do so, all subject to the following:
 #include <functional>
 #include <initializer_list>
 #include <new>
+#include <typeindex>
 #include <type_traits>
 #include <utility>
 
@@ -1420,6 +1421,57 @@ namespace juice
   {
     return !variantCompare<std::less>()(v, w);
   }
+}
+
+namespace std {
+  using juice::visit;
+  using juice::get;
+
+  template <typename T> struct hash;
+
+  namespace detail
+  {
+    inline
+    size_t
+    hash_combine(size_t seed, size_t combine)
+    {
+      return seed ^ (combine + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+    }
+
+    struct hash_visitor
+    {
+      template <typename T>
+      size_t
+      operator()(const T& t)
+      {
+        type_index ti(typeid(t));
+        size_t h = std::hash<type_index>()(ti);
+        h = hash_combine(h, std::hash<T>()(t));
+
+        return h;
+      }
+    };
+  }
+
+  template <typename... Types>
+  struct hash<juice::variant<Types...>>
+  {
+    size_t
+    operator()(const juice::variant<Types...>& v)
+    {
+      return visit(detail::hash_visitor(), v);
+    }
+  };
+
+  template <>
+  struct hash<juice::monostate>
+  {
+    size_t
+    operator()(const juice::monostate&)
+    {
+      return 47;
+    }
+  };
 }
 
 //this is deprecated as we are moving to a more standard naming convention
