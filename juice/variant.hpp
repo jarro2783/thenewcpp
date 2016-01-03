@@ -1141,22 +1141,24 @@ namespace juice
     decltype(auto)
     visit(const variant<Types...>& var, Args&&... args)
     {
-      return var.template apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
+      return var.template
+        apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
     }
 
     template <typename... Types, typename... Args>
     decltype(auto)
     visit(variant<Types...>& var, Args&&... args)
     {
-      return var.template apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
+      return var.template
+        apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
     }
 
     template <typename... Types, typename... Args>
     decltype(auto)
     visit(variant<Types...>&& var, Args&&... args)
     {
-      return std::move(var)
-        .template apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
+      return std::move(var).template
+        apply_visitor<MPL::false_>(*this, std::forward<Args>(args)...);
     }
 
     template <int... I, typename... Args>
