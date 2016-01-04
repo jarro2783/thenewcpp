@@ -185,6 +185,49 @@ namespace juice
     }
   };
 
+  template <typename T>
+  struct unwrapped_type
+  {
+    typedef T type;
+  };
+
+  template <typename T>
+  struct unwrapped_type<recursive_wrapper<T>>
+  {
+    typedef T type;
+  };
+
+  template <typename T>
+  using unwrapped_type_t = typename unwrapped_type<T>::type;
+
+  template <typename T>
+  const T&
+  recursive_unwrap(const recursive_wrapper<T>& r)
+  {
+    return r.get();
+  }
+
+  template <typename T>
+  T&
+  recursive_unwrap(recursive_wrapper<T>& r)
+  {
+    return r.get();
+  }
+
+  template <typename T>
+  const T&
+  recursive_unwrap(const T& t)
+  {
+    return t;
+  }
+
+  template <typename T>
+  T&
+  recursive_unwrap(T& t)
+  {
+    return t;
+  }
+
   namespace detail
   {
     template <typename T, typename Internal>
@@ -1198,7 +1241,7 @@ namespace juice
   auto&
   get(variant<Types...>& v)
   {
-    return v.template get<I>();
+    return recursive_unwrap(v.template get<I>());
   }
 
   template <size_t I, typename... Types>
@@ -1206,7 +1249,7 @@ namespace juice
   auto&
   get(const variant<Types...>& v)
   {
-    return v.template get<I>();
+    return recursive_unwrap(v.template get<I>());
   }
 
   template <size_t I, typename... Types>
@@ -1214,11 +1257,13 @@ namespace juice
   get(variant<Types...>&& v)
   {
     return std::forward<
-      std::tuple_element_t<I, variant<Types...>>&&>(get<I>(v));
+      std::tuple_element_t<I, variant<Types...>>&&>(recursive_unwrap(get<I>(v)));
   }
 
   template <size_t I, typename... Types>
-  std::remove_reference_t<std::tuple_element_t<I, variant<Types...>>>*
+  std::remove_reference_t<
+    unwrapped_type_t<std::tuple_element_t<I, variant<Types...>>>
+  >*
   get(variant<Types...>* v)
   {
     if (v->index() != I)
@@ -1226,11 +1271,14 @@ namespace juice
       return nullptr;
     }
 
-    return &get<I>(*v);
+    return &recursive_unwrap(get<I>(*v));
   }
 
   template <size_t I, typename... Types>
-  const std::remove_reference_t<std::tuple_element_t<I, variant<Types...>>>*
+  const
+  std::remove_reference_t<
+    unwrapped_type_t<std::tuple_element_t<I, variant<Types...>>>
+  >*
   get(const variant<Types...>* v)
   {
     if (v->index() != I)
@@ -1238,7 +1286,7 @@ namespace juice
       return nullptr;
     }
 
-    return &get<I>(*v);
+    return &recursive_unwrap(get<I>(*v));
   }
 
   // === then the type versions ===
@@ -1248,7 +1296,7 @@ namespace juice
   get(variant<Types...>* var)
   {
     //return visit(get_visitor<T>(), *var);
-    return &get<tuple_find<T, variant<Types...>>::value>(var);
+    return get<tuple_find<T, variant<Types...>>::value>(var);
   }
 
   template <typename T, typename... Types>
@@ -1256,7 +1304,7 @@ namespace juice
   get(const variant<Types...>* var)
   {
     //return visit(get_visitor<const T>(), *var);
-    return &get<tuple_find<T, variant<Types...>>::value>(var);
+    return get<tuple_find<T, variant<Types...>>::value>(var);
   }
 
   template <typename T, typename... Types>
