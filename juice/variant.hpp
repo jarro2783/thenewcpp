@@ -708,7 +708,6 @@ namespace juice
         if (v.index() == Which)
         {
           *reinterpret_cast<Current*>(&v.m_storage) = t;
-          v.indicate_which(Which);
         }
         else
         {
@@ -718,10 +717,8 @@ namespace juice
                 MPL::true_,
                 MPL::false_
               >::type());
-#if 0
-          else
-#endif
         }
+        v.indicate_which(Which);
       }
     };
 
