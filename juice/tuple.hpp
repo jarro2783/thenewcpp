@@ -52,7 +52,7 @@ namespace std
 {
 
   template <typename... Types>
-  struct tuple_size<juice::variant<Types...>> :
+  class tuple_size<juice::variant<Types...>> :
     public std::integral_constant<size_t, sizeof...(Types)>
   {
   };

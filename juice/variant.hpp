@@ -785,8 +785,9 @@ namespace juice
     }
 
     variant(variant&& rhs)
-    noexcept(conjunction<std::is_nothrow_move_constructible<First>::value,
-      std::is_nothrow_move_constructible<Types>::value...>::value)
+    noexcept(conjunction<std::is_nothrow_move_constructible<
+      Types
+    >::value...>::value)
     {
       //this does not invalidate rhs, it moves the value in rhs to this,
       //which leaves an empty but valid value in rhs
@@ -1473,8 +1474,6 @@ namespace juice
 namespace std {
   using juice::visit;
   using juice::get;
-
-  template <typename T> struct hash;
 
   namespace detail
   {

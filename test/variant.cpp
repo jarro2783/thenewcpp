@@ -29,6 +29,7 @@ do so, all subject to the following:
 
 #include <iostream>
 #include <string>
+#include <memory>
 
 #include <typeinfo>
 
@@ -182,8 +183,27 @@ foo()
   get<0>(&a);
 }
 
+struct Recursive;
+
+typedef juice::variant<char, int,
+  std::unique_ptr<Recursive>>
+RVariant;
+
+struct Recursive
+{
+  RVariant a;
+};
+
+void
+bar()
+{
+  RVariant r(std::unique_ptr<Recursive>(new Recursive{4}));
+  auto s = std::move(r);
+}
+
 int main(int argc, char** argv)
 {
   foo();
+  bar();
   return 0;
 }
