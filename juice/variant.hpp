@@ -75,9 +75,9 @@ namespace juice
   }
 
   template <typename T> struct emplaced_type_t{};
-  template <typename T> constexpr emplaced_type_t<T> emplaced_type;
+  template <typename T> constexpr emplaced_type_t<T> emplaced_type{};
   template <size_t I> struct emplaced_index_t {};
-  template <size_t I> constexpr emplaced_index_t<I> emplaced_index;
+  template <size_t I> constexpr emplaced_index_t<I> emplaced_index{};
 
   template <typename R = void>
   class
@@ -544,14 +544,6 @@ namespace juice
       {
       }
 
-      //the rhs is empty
-      void
-      operator()() const
-      {
-        //same as assignment
-        m_self.destroy();
-      }
-
       template <typename Rhs>
       void
       operator()(Rhs& rhs) const
@@ -573,10 +565,15 @@ namespace juice
 
           //if this throws we are ok because tmp will not exist and
           //m_self will still be consistent
-          variant tmp(std::move(m_self));
+          //variant tmp(std::move(m_self));
 
           //now m_self is empty, if this throws then we are all good
-          m_self.construct(std::move(rhs));
+          //m_self.construct(std::move(rhs));
+
+          //the standard proposal does not do this because there are no
+          //recursive types, instead it just does:
+          m_self.destroy();
+          new (&m_self.m_storage) Rhs(std::move(rhs));
         }
       }
 
@@ -859,7 +856,7 @@ namespace juice
     template <typename T, typename... Args>
     void emplace(Args&&... args)
     {
-      if (valid())
+      if (!valueless_by_exception())
       {
         destroy();
       }
@@ -870,7 +867,7 @@ namespace juice
     template <typename T, typename U, typename... Args>
     void emplace(std::initializer_list<U> il, Args&&... args)
     {
-      if (valid())
+      if (!valueless_by_exception())
       {
         destroy();
       }
@@ -917,10 +914,18 @@ namespace juice
       if (this != &rhs)
       {
         auto w = rhs.which();
-        rhs.apply_visitor_internal(move_assigner(*this, w));
-        indicate_which(w);
-        //the rhs is now empty
-        rhs.indicate_which(tuple_not_found);
+        if (w == tuple_not_found)
+        {
+          if (index() != tuple_not_found)
+          {
+            destroy();
+          }
+        }
+        else
+        {
+          rhs.apply_visitor_internal(move_assigner(*this, w));
+          indicate_which(w);
+        }
       }
       return *this;
     }
@@ -983,9 +988,9 @@ namespace juice
     size_t index() const { return m_which; }
 
     bool
-    valid() const
+    valueless_by_exception() const
     {
-      return m_which != tuple_not_found;
+      return m_which == tuple_not_found;
     }
 
     template <typename Internal, typename Visitor, typename... Args>
