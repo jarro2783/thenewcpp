@@ -202,17 +202,19 @@ bar()
   RVariant r(std::unique_ptr<Recursive>(new Recursive{4}));
   auto s = std::move(r);
 
+#if 0
   int n = 42;
   RefVariant ref(std::move(n));
 
   std::cout << "Reftype has index: " << ref.index() << std::endl;
 
-  int& m = std::get<int&&>(ref);
+  auto m = std::get<0>(ref);
   
   std::cout << "ref value = " << m << std::endl;
   m = 5;
 
   std::cout << "Old n has value " << n << std::endl;
+#endif
 }
 
 int main(int argc, char** argv)

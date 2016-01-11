@@ -626,6 +626,21 @@ namespace juice
       }
     };
 
+    template <typename... MyTypes>
+    struct assign_FUN
+    {
+      static void FUN();
+    };
+
+    template <typename Current, typename... MyTypes>
+    struct assign_FUN<Current, MyTypes...> : public assign_FUN<MyTypes...>
+    {
+      using assign_FUN<MyTypes...>::FUN;
+
+      static Current
+      FUN(Current);
+    };
+
     template <size_t Which, typename... MyTypes>
     struct initialiser;
 
@@ -775,7 +790,13 @@ namespace juice
 
       //compile error here means that T is not unambiguously convertible to
       //any of the types in (First, Types...)
-      initialiser<0, Types...>::initialise(*this, std::forward<T>(t));
+      //initialiser<0, Types...>::initialise(*this, std::forward<T>(t));
+      typedef decltype(assign_FUN<Types...>::FUN(std::forward<T>(t))) type;
+      constexpr auto I = tuple_find_v<type, variant>;
+
+      std::cout << "constructing with type " << I << std::endl;
+      new (&m_storage) type(std::forward<T>(t));
+      indicate_which(I);
     }
 
     variant(const variant& rhs)
@@ -928,8 +949,20 @@ namespace juice
       >::value
     )
     {
-      assign_initialise<0, Types...>::initialise(*this, std::forward<T>(t));
-      //assign_initialise<0, Types...>::initialise(*this, std::decay_t<T>(t));
+      typedef decltype(assign_FUN<Types...>::FUN(std::forward<T>(t))) type;
+      constexpr auto I = tuple_find_v<type, variant>;
+
+      if (index() != I)
+      {
+        destroy();
+        new (&m_storage) type(std::forward<T>(t));
+      }
+      else
+      {
+        reinterpret_cast<type&>(m_storage) = std::forward<T>(t);
+      }
+
+      indicate_which(I);
 
       return *this;
     }

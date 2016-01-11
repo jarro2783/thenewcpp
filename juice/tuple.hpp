@@ -46,6 +46,9 @@ namespace juice
     public tuple_find<T, std::tuple<Types...>>
   {
   };
+
+  template <typename T, typename U>
+  constexpr size_t tuple_find_v = tuple_find<T, U>::value;
 }
 
 namespace std
