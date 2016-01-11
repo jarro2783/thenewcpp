@@ -1,6 +1,6 @@
 rule cxx
-    command = g++ $in -o $out -c -O3 -Wall -std=c++14 -MMD -MF $out.d -I. $
-      -fdiagnostics-color=always
+    command = g++ $in -o $out -c -O0 -Wall -std=c++14 -MMD -MF $out.d -I. $
+      -fdiagnostics-color=always -g
     depfile = $out.d
 
 rule cxx_link

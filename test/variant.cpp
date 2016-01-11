@@ -194,11 +194,25 @@ struct Recursive
   RVariant a;
 };
 
+typedef juice::variant<char, int&&> RefVariant;
+
 void
 bar()
 {
   RVariant r(std::unique_ptr<Recursive>(new Recursive{4}));
   auto s = std::move(r);
+
+  int n = 42;
+  RefVariant ref(std::move(n));
+
+  std::cout << "Reftype has index: " << ref.index() << std::endl;
+
+  int& m = std::get<int&&>(ref);
+  
+  std::cout << "ref value = " << m << std::endl;
+  m = 5;
+
+  std::cout << "Old n has value " << n << std::endl;
 }
 
 int main(int argc, char** argv)

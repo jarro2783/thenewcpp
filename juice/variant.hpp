@@ -1,5 +1,5 @@
 /* A tagged union variant class.
-   Copyright (C) 2013 Jarryd Beck
+   Copyright (C) 2013-2016 Jarryd Beck
 
 This file is part of Juice.
 
@@ -232,7 +232,7 @@ namespace juice
   {
     template <typename T, typename Internal>
     T&
-    get_value(T& t, const Internal&)
+    get_value(T&& t, const Internal&)
     {
       return t;
     }
@@ -349,7 +349,7 @@ namespace juice
       T
     >::type ConstType;
 
-    return visitor(detail::get_value(*reinterpret_cast<ConstType*>(storage), 
+    return visitor(detail::get_value(reinterpret_cast<ConstType&&>(*storage),
       internal), std::forward<Args>(args)...);
   }
 
@@ -692,7 +692,7 @@ namespace juice
       {
         if (v.index() == Which)
         {
-          *reinterpret_cast<Current*>(&v.m_storage) = std::move(t);
+          reinterpret_cast<Current&>(v.m_storage) = std::move(t);
         }
         else
         {
@@ -904,6 +904,7 @@ namespace juice
       return *this;
     }
 
+#if 0
     template <typename T>
     variant&
     operator=(const T& t)
@@ -912,10 +913,14 @@ namespace juice
 
       return *this;
     }
+#endif
 
-    template <typename T>
+    template <typename T,
+      typename = typename
+        std::enable_if<!std::is_same<std::decay_t<T>, variant>::value>::type
+    >
     variant&
-    operator=(const T&& t) noexcept(
+    operator=(T&& t) noexcept(
       conjunction<(
         std::is_nothrow_move_assignable<Types>::value &&
         std::is_nothrow_move_constructible<Types>::value
@@ -924,6 +929,7 @@ namespace juice
     )
     {
       assign_initialise<0, Types...>::initialise(*this, std::forward<T>(t));
+      //assign_initialise<0, Types...>::initialise(*this, std::decay_t<T>(t));
 
       return *this;
     }
@@ -1004,9 +1010,9 @@ namespace juice
         throw bad_variant_access("Tuple does not contain requested item");
       }
 
-      return *reinterpret_cast<
-        typename std::tuple_element<I, variant<Types...>>::type*>(
-        &m_storage
+      return reinterpret_cast<
+        typename std::tuple_element<I, variant<Types...>>::type&>(
+        m_storage
       );
     }
 
