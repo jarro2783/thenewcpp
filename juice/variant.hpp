@@ -468,7 +468,7 @@ namespace juice
       void
       operator()(const T& rhs) const
       {
-        m_self.construct(rhs);
+        m_self.construct<T>(rhs);
       }
 
       private:
@@ -491,7 +491,7 @@ namespace juice
       void
       operator()(T& rhs) const
       {
-        m_self.construct(std::move(rhs));
+        m_self.construct<T>(std::move(rhs));
       }
 
       private:
@@ -528,7 +528,7 @@ namespace juice
           m_self.destroy();
 
           //if this throws, then we are already empty
-          m_self.construct(std::move(tmp));
+          m_self.construct<Rhs>(std::move(tmp));
         }
       }
 
@@ -651,14 +651,14 @@ namespace juice
       static void 
       initialise(variant& v, Current&& current)
       {
-        v.construct(std::move(current));
+        v.construct<Current>(std::move(current));
         v.indicate_which(Which);
       }
 
       static void
       initialise(variant& v, const Current& current)
       {
-        v.construct(current);
+        v.construct<Current>(current);
         v.indicate_which(Which);
       }
     };
@@ -1102,13 +1102,12 @@ namespace juice
       new(&m_storage) T(std::forward<Args>(args)...);
     }
 
-    template <typename T>
+    template <typename T, typename U>
     constexpr
     void
-    construct(T&& t)
+    construct(U&& t)
     {
-      typedef typename std::remove_reference<T>::type type;
-      new(&m_storage) type(std::forward<T>(t));
+      new(&m_storage) T(std::forward<U>(t));
     }
   };
 
