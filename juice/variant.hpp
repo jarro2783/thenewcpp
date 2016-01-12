@@ -228,6 +228,13 @@ namespace juice
     return t;
   }
 
+  template <typename T>
+  T&&
+  recursive_unwrap(T&& t)
+  {
+    return std::move(t);
+  }
+
   namespace detail
   {
     template <typename T, typename Internal>
@@ -358,6 +365,42 @@ namespace juice
   call_deduce(A a, B... b)
   {
   }
+
+  template <typename T>
+  struct ref
+  {
+    static_assert(std::is_reference<T>::value,
+      "Can only be used with references");
+    ref(T t)
+    : m_t(std::forward<T>(t))
+    {
+    }
+
+    operator T() {
+      return static_cast<T>(m_t);
+    }
+
+    private:
+    T m_t;
+  };
+
+  template <typename T, bool = std::is_reference<T>::value>
+  struct ref_type;
+
+  template <typename T>
+  struct ref_type<T, true>
+  {
+    typedef ref<T> type;
+  };
+
+  template <typename T>
+  struct ref_type<T, false>
+  {
+    typedef T type;
+  };
+
+  template <typename T>
+  using ref_type_t = typename ref_type<T>::type;
 
   template <typename... Types>
   class variant
@@ -792,7 +835,8 @@ namespace juice
       constexpr auto I = tuple_find_v<type, variant>;
 
       std::cout << "constructing with type " << I << std::endl;
-      new (&m_storage) type(std::forward<T>(t));
+      //new (&m_storage) type(std::forward<T>(t));
+      construct<type>(std::forward<T>(t));
       indicate_which(I);
     }
 
@@ -1023,25 +1067,9 @@ namespace juice
     }
 
     template <size_t I>
-    //typename std::tuple_element<I, variant<Types...>>::type&
-    auto&
-    get() const
-    {
-      if (index() != I)
-      {
-        throw bad_variant_access("Tuple does not contain requested item");
-      }
-
-      return *reinterpret_cast<
-        const typename std::tuple_element<I, variant<Types...>>::type*>(
-        &m_storage
-      );
-    }
-
-    template <size_t I>
-    //typename std::tuple_element<I, variant<Types...>>::type&
-    auto&
-    get()
+    const typename std::tuple_element<I, variant<Types...>>::type&
+    //auto&
+    get() const &
     {
       if (index() != I)
       {
@@ -1049,9 +1077,54 @@ namespace juice
       }
 
       return reinterpret_cast<
-        typename std::tuple_element<I, variant<Types...>>::type&>(
+        const ref_type_t<
+          typename std::tuple_element<I, variant>::type
+        >&
+      >(
         m_storage
       );
+    }
+
+    template <size_t I>
+    typename std::tuple_element<I, variant<Types...>>::type&
+    //auto&
+    get() &
+    {
+      using E = typename std::tuple_element<I, variant>::type;
+      if (index() != I)
+      {
+        throw bad_variant_access("Tuple does not contain requested item");
+      }
+
+      return 
+        reinterpret_cast<
+          ref_type_t<E>&
+        >
+        (
+          m_storage
+        );
+    }
+
+    template <size_t I>
+    typename std::tuple_element<I, variant>::type&&
+    get() &&
+    {
+      using E = typename std::tuple_element<I, variant>::type;
+      if (index() != I)
+      {
+        throw bad_variant_access("Tuple does not contain requested item");
+      }
+
+      return 
+        std::move(
+          reinterpret_cast<
+            ref_type_t<E>&
+          >
+          (
+            m_storage
+          )
+        );
+
     }
 
     private:
@@ -1107,7 +1180,9 @@ namespace juice
     void
     construct(U&& t)
     {
-      new(&m_storage) T(std::forward<U>(t));
+      using R = typename std::conditional<std::is_reference<T>::value, 
+        ref<T>, T>::type;
+      new(&m_storage) R(std::forward<U>(t));
     }
   };
 
@@ -1297,8 +1372,7 @@ namespace juice
   auto&&
   get(variant<Types...>&& v)
   {
-    return std::forward<
-      std::tuple_element_t<I, variant<Types...>>&&>(recursive_unwrap(get<I>(v)));
+    return recursive_unwrap(std::move(v).template get<I>());
   }
 
   template <size_t I, typename... Types>
