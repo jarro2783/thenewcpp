@@ -179,8 +179,8 @@ foo()
   const MyVariant ca(5);
   get<int>(ca);
   get<0>(ca);
-  get<0>(&ca);
-  get<0>(&a);
+  get_if<0>(&ca);
+  get_if<0>(&a);
 }
 
 struct Recursive;

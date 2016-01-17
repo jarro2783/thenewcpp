@@ -1376,10 +1376,10 @@ namespace juice
   }
 
   template <size_t I, typename... Types>
-  std::remove_reference_t<
+  std::add_pointer_t<
     unwrapped_type_t<std::tuple_element_t<I, variant<Types...>>>
-  >*
-  get(variant<Types...>* v)
+  >
+  get_if(variant<Types...>* v)
   {
     if (v->index() != I)
     {
@@ -1391,10 +1391,10 @@ namespace juice
 
   template <size_t I, typename... Types>
   const
-  std::remove_reference_t<
+  std::add_pointer_t<const
     unwrapped_type_t<std::tuple_element_t<I, variant<Types...>>>
-  >*
-  get(const variant<Types...>* v)
+  >
+  get_if(const variant<Types...>* v)
   {
     if (v->index() != I)
     {
@@ -1407,16 +1407,16 @@ namespace juice
   // === then the type versions ===
 
   template <typename T, typename... Types>
-  std::remove_reference_t<T>*
-  get(variant<Types...>* var)
+  std::add_pointer_t<T>
+  get_if(variant<Types...>* var)
   {
     //return visit(get_visitor<T>(), *var);
     return get<tuple_find<T, variant<Types...>>::value>(var);
   }
 
   template <typename T, typename... Types>
-  const std::remove_reference_t<T>*
-  get(const variant<Types...>* var)
+  const std::add_pointer_t<const T>
+  get_if(const variant<Types...>* var)
   {
     //return visit(get_visitor<const T>(), *var);
     return get<tuple_find<T, variant<Types...>>::value>(var);
