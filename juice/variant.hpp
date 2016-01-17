@@ -376,7 +376,7 @@ namespace juice
     {
     }
 
-    operator T() {
+    operator T() const {
       return static_cast<T>(m_t);
     }
 
@@ -1423,7 +1423,7 @@ namespace juice
   }
 
   template <typename T, typename... Types>
-  std::remove_reference_t<T>&
+  T&
   get (variant<Types...>& var)
   {
     //T* t = visit(get_visitor<T>(), var);
@@ -1434,7 +1434,7 @@ namespace juice
   }
 
   template <typename T, typename... Types>
-  const std::remove_reference_t<T>&
+  const T&
   get (const variant<Types...>& var)
   {
     //const T* t = visit(get_visitor<const T>(), &var);

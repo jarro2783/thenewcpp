@@ -213,6 +213,11 @@ bar()
   m = 5;
 
   std::cout << "Old n has value " << n << std::endl;
+
+  int& cint = std::get<int&>(static_cast<const RefVariant&>(ref));
+
+  cint = 6;
+  std::cout << "Second modify = 6: " << cint << std::endl;
 }
 
 int main(int argc, char** argv)
