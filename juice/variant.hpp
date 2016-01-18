@@ -360,12 +360,6 @@ namespace juice
       internal), std::forward<Args>(args)...);
   }
 
-  template <typename A, typename... B>
-  void
-  call_deduce(A a, B... b)
-  {
-  }
-
   template <typename T>
   struct ref
   {
@@ -429,31 +423,21 @@ namespace juice
         Args&&... args
       )
       {
-        //typedef decltype(call_deduce(
-        //    &visitor_caller<Internal&&, AllTypes,
-        //      VoidPtrCV&&, Visitor, Args&&...>...
-        //)) result;
-
         typedef
-        decltype (visitor_caller<Internal&&, First, VoidPtrCV&&, Visitor,
-          Args&&...>
-          (
-            std::forward<Internal>(internal),
-            std::forward<VoidPtrCV>(storage), 
-            std::forward<Visitor>(visitor), 
-            std::forward<Args>(args)...
-          ))
+        typename std::common_type<
+          decltype (visitor_caller<Internal&&, AllTypes, VoidPtrCV&&, Visitor,
+            Args&&...>
+            (
+              std::forward<Internal>(internal),
+              std::forward<VoidPtrCV>(storage), 
+              std::forward<Visitor>(visitor), 
+              std::forward<Args>(args)...
+            ))...
+        >::type
         result;
 
-        //typedef typename std::remove_reference<Visitor>::type::result_type
         typedef result
           (*whichCaller)(Internal&&, VoidPtrCV&&, Visitor&&, Args&&...);
-
-        //visiting an empty variant is undefined by the proposal
-        //if (which == size_t(-1))
-        //{
-        //  return visitor();
-        //}
 
         static whichCaller callers[sizeof...(AllTypes)] =
           {
@@ -811,7 +795,7 @@ namespace juice
     template 
     <
       typename T, 
-      typename Dummy = 
+      typename = 
         typename std::enable_if
         <
           !std::is_same
@@ -822,7 +806,7 @@ namespace juice
           T
         >::type
     >
-    variant(T&& t)
+    constexpr variant(T&& t)
     {
        static_assert(
           !std::is_same<variant<Types...>&, T>::value,
