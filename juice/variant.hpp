@@ -302,6 +302,15 @@ namespace juice
       }
     };
 
+    template <typename T, typename... Types>
+    struct variant_universal_check
+    {
+      static constexpr bool value =
+      //  tuple_find<T, std::tuple<Types...>>::value != tuple_not_found
+        !std::is_same<T, variant<Types...>>::value
+      ;
+    };
+
   }    
 
   struct monostate {};
@@ -798,12 +807,7 @@ namespace juice
       typename = 
         typename std::enable_if
         <
-          !std::is_same
-          <
-            typename std::remove_reference<variant<Types...>>::type,
-            typename std::remove_reference<T>::type
-          >::value,
-          T
+          detail::variant_universal_check<std::decay_t<T>, Types...>::value
         >::type
     >
     constexpr variant(T&& t)

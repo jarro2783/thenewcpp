@@ -11,8 +11,11 @@ namespace juice
   static constexpr const size_t tuple_not_found = (size_t) -1;
   template <typename T, typename U> struct tuple_find;
 
+  template <size_t N, typename T, typename... Types>
+  struct tuple_find_helper;
+
   template <size_t N, typename T, typename First, typename... Types>
-  struct tuple_find_helper :
+  struct tuple_find_helper<N, T, First, Types...> :
     public tuple_find_helper<N+1, T, Types...>
   {
   };
@@ -26,6 +29,12 @@ namespace juice
   template <size_t N, typename T, typename... Types>
   struct tuple_find_helper<N, T, T, Types...> :
     public std::integral_constant<std::size_t, N>
+  {
+  };
+
+  template <size_t N, typename T>
+  struct tuple_find_helper<N, T> :
+    public std::integral_constant<decltype(tuple_not_found), tuple_not_found>
   {
   };
 
