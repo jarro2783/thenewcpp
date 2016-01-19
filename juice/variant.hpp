@@ -186,6 +186,13 @@ namespace juice
   };
 
   template <typename T>
+  struct is_recursive_wrapper : public std::false_type {};
+
+  template <typename T>
+  struct is_recursive_wrapper<recursive_wrapper<T>>
+    : public std::true_type {};
+
+  template <typename T>
   struct unwrapped_type
   {
     typedef T type;
@@ -241,6 +248,10 @@ namespace juice
     T&
     get_value(T&& t, const Internal&)
     {
+      using Plain = std::remove_reference_t<T>;
+      static_assert(std::is_same<MPL::true_, Internal>::value ||
+        !is_recursive_wrapper<Plain>::value,
+        "recursive wrapper in generic get");
       return t;
     }
 
@@ -354,18 +365,25 @@ namespace juice
   visitor_caller(Internal&& internal, 
     Storage&& storage, Visitor&& visitor, Args&&... args)
   {
-    typedef typename std::conditional
+    using Bare = typename std::remove_pointer_t<
+      std::remove_reference_t<Storage>
+    >;
+
+    using ConstType = typename std::conditional
     <
-      std::is_const<
-        typename std::remove_pointer<
-          typename std::remove_reference<Storage>::type
-        >::type
-      >::value,
+      std::is_const<Bare>::value,
       const T,
       T
-    >::type ConstType;
+    >::type;
 
-    return visitor(detail::get_value(reinterpret_cast<ConstType&&>(*storage),
+    using RefType = typename std::conditional
+    <
+      std::is_reference<Storage>::value,
+      ConstType&,
+      ConstType
+    >::type;
+
+    return visitor(detail::get_value(reinterpret_cast<RefType>(*storage),
       internal), std::forward<Args>(args)...);
   }
 
@@ -819,11 +837,10 @@ namespace juice
       //compile error here means that T is not unambiguously convertible to
       //any of the types in (First, Types...)
       //initialiser<0, Types...>::initialise(*this, std::forward<T>(t));
+
       typedef decltype(assign_FUN<Types...>::FUN(std::forward<T>(t))) type;
       constexpr auto I = tuple_find_v<type, variant>;
 
-      std::cout << "constructing with type " << I << std::endl;
-      //new (&m_storage) type(std::forward<T>(t));
       construct<type>(std::forward<T>(t));
       indicate_which(I);
     }
@@ -1399,7 +1416,7 @@ namespace juice
   get_if(variant<Types...>* var)
   {
     //return visit(get_visitor<T>(), *var);
-    return get<tuple_find<T, variant<Types...>>::value>(var);
+    return get_if<tuple_find<T, variant<Types...>>::value>(var);
   }
 
   template <typename T, typename... Types>
@@ -1407,7 +1424,7 @@ namespace juice
   get_if(const variant<Types...>* var)
   {
     //return visit(get_visitor<const T>(), *var);
-    return get<tuple_find<T, variant<Types...>>::value>(var);
+    return get_if<tuple_find<T, variant<Types...>>::value>(var);
   }
 
   template <typename T, typename... Types>
@@ -1467,7 +1484,7 @@ namespace juice
   bool
   variant_is_type(const V& v)
   {
-    return get<T>(&v) != nullptr;
+    return get_if<T>(&v) != nullptr;
   }
 
   template <typename T, typename... Types>
