@@ -242,6 +242,18 @@ namespace juice
     return std::move(t);
   }
 
+  //is B a subset of A, i.e. all of Bs types are in A
+  template <typename A, typename B>
+  struct variant_subset : public std::false_type {};
+
+  template <typename... A, typename... B>
+  struct variant_subset<variant<A...>, variant<B...>>
+  {
+    static constexpr bool value = conjunction<
+      (tuple_find<B, variant<A...>>::value != tuple_not_found)...
+    >::value;
+  };
+
   namespace detail
   {
     template <typename T, typename Internal>
@@ -546,6 +558,33 @@ namespace juice
       operator()(T& rhs) const
       {
         m_self.construct<T>(std::move(rhs));
+      }
+
+      private:
+      variant& m_self;
+    };
+
+    struct diff_assigner
+    {
+      diff_assigner(variant& self)
+      : m_self(self)
+      {
+      }
+
+      //when the types are the same we can assign directly
+      template <typename A>
+      void
+      operator()(A& a, const A& b)
+      {
+        a = b;
+      }
+
+      //when they are different we assign into the variant
+      template <typename A, typename B>
+      void
+      operator()(A& a, const B& b)
+      {
+        m_self = b;
       }
 
       private:
@@ -979,20 +1018,10 @@ namespace juice
       return *this;
     }
 
-#if 0
-    template <typename T>
-    variant&
-    operator=(const T& t)
-    {
-      assign_initialise<0, Types...>::initialise(*this, t);
-
-      return *this;
-    }
-#endif
-
     template <typename T,
       typename = typename
-        std::enable_if<!std::is_same<std::decay_t<T>, variant>::value>::type
+        std::enable_if<!std::is_same<std::decay_t<T>, variant>::value
+        && !variant_subset<variant, std::decay_t<T>>::value>::type
     >
     variant&
     operator=(T&& t) noexcept(
@@ -1020,6 +1049,22 @@ namespace juice
 
       return *this;
     }
+
+    //non-standard, = for equivalent variants
+    //only enable if rhs is a subset of this
+    //i.e. this can hold anything that could be in rhs
+    template <typename... RhsT,
+      typename = typename std::enable_if<
+        variant_subset<variant, variant<RhsT...>>::value
+      >::type
+    >
+    variant&
+    operator=(const variant<RhsT...>& rhs);
+    //{
+    //  diff_assigner(this);
+    //  visit(diff_assigner, *this, rhs);
+    //  return *this;
+    //}
 
     bool
     operator==(const variant& rhs) const
@@ -1591,6 +1636,19 @@ namespace juice
   {
     return !variantCompare<std::less>()(v, w);
   }
+
+    //non-standard, = for equivalent variants
+    //only enable if rhs is a subset of this
+    //i.e. this can hold anything that could be in rhs
+    template <typename... Types>
+    template <typename... RhsT, typename>
+    variant<Types...>&
+    variant<Types...>::operator=(const variant<RhsT...>& rhs)
+    {
+      diff_assigner assign(*this);
+      visit(assign, *this, rhs);
+      return *this;
+    }
 }
 
 namespace std {

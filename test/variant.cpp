@@ -220,9 +220,25 @@ bar()
   std::cout << "Second modify = 6: " << cint << std::endl;
 }
 
+void
+subset_assign()
+{
+  using Super = variant<char, std::string, int>;
+  using Sub = variant<int, char>;
+
+  Super super;
+  Sub sub(42);
+
+  super = sub;
+
+  std::cout << "Subset = " << variant_subset<Super, Sub>::value << std::endl;
+  std::cout << get<2>(super) << std::endl;
+}
+
 int main(int argc, char** argv)
 {
   foo();
   bar();
+  subset_assign();
   return 0;
 }
