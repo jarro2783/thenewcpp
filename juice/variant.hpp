@@ -1637,18 +1637,18 @@ namespace juice
     return !variantCompare<std::less>()(v, w);
   }
 
-    //non-standard, = for equivalent variants
-    //only enable if rhs is a subset of this
-    //i.e. this can hold anything that could be in rhs
-    template <typename... Types>
-    template <typename... RhsT, typename>
-    variant<Types...>&
-    variant<Types...>::operator=(const variant<RhsT...>& rhs)
-    {
-      diff_assigner assign(*this);
-      visit(assign, *this, rhs);
-      return *this;
-    }
+  //non-standard, = for equivalent variants
+  //only enable if rhs is a subset of this
+  //i.e. this can hold anything that could be in rhs
+  template <typename... Types>
+  template <typename... RhsT, typename>
+  variant<Types...>&
+  variant<Types...>::operator=(const variant<RhsT...>& rhs)
+  {
+    diff_assigner assign(*this);
+    visit(assign, *this, rhs);
+    return *this;
+  }
 }
 
 namespace std {
