@@ -1,6 +1,5 @@
 sudo: required
 language: generic
-os: linux
 matrix:
   include:
     - os: linux
