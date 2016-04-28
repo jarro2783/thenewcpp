@@ -1,2 +1,10 @@
-language: cpp
-script: ninja && ninja test
+language: generic
+os: linux
+matrix:
+  include:
+    - os: linux
+      env: COMPILER_NAME=gcc CXX=g++-5 CC=gcc-5
+      addons:
+        apt:
+          packages:
+            - g++-5
