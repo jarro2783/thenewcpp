@@ -905,40 +905,38 @@ namespace juice
     template <typename T, typename... Args>
     void emplace(Args&&... args)
     {
-      if (!valueless_by_exception())
-      {
-        destroy();
-      }
-      emplace_internal<T>(std::forward<Args>(args)...);
-      indicate_which(tuple_find<T, variant>::value);
+      return emplace<tuple_find<T, variant>::value>(std::forward<Args>(args)...);
     }
 
     template <typename T, typename U, typename... Args>
     void emplace(std::initializer_list<U> il, Args&&... args)
     {
-      if (!valueless_by_exception())
-      {
-        destroy();
-      }
-      emplace_internal<T>(il, std::forward<Args>(args)...);
-      indicate_which(tuple_find<T, variant>::value);
+      return emplace<tuple_find<T, variant>::value>(
+        il,
+        std::forward<Args>(args)...
+      );
     }
 
     template <size_t I, typename... Args>
     void emplace(Args&&... args)
     {
-      return emplace<typename std::tuple_element<I, variant>::type>(
-        std::forward<Args>(args)...
-      );
+      if (!valueless_by_exception())
+      {
+        destroy();
+      }
+      emplace_internal<typename std::tuple_element<I, variant>::type>(std::forward<Args>(args)...);
+      indicate_which(I);
     }
 
     template <size_t I, typename U, typename... Args>
     void emplace(std::initializer_list<U> il, Args&&... args)
     {
-      return emplace<typename std::tuple_element<I, variant>::type>(
-        il,
-        std::forward<Args>(args)...
-      );
+      if (!valueless_by_exception())
+      {
+        destroy();
+      }
+      emplace_internal<typename std::tuple_element<I, variant>::type>(il, std::forward<Args>(args)...);
+      indicate_which(I);
     }
 
     variant& operator=(const variant& rhs)
