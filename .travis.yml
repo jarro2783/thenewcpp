@@ -1,6 +1,7 @@
 sudo: required
 language: generic
-packages: ninja-build
+packages:
+  - ninja-build
 matrix:
   include:
     - os: linux
