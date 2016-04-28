@@ -15,9 +15,11 @@ build test/variant: cxx_link test/variant.o
 
 build test/parameter.o: cxx test/parameter.cpp
 
+build test/variant_test_main.o: cxx test/variant_test_main.cpp
+
 build test/variant_test.o: cxx test/variant_test.cpp
 
-build test/variant_test: cxx_link test/variant_test.o
+build test/variant_test: cxx_link test/variant_test.o test/variant_test_main.o
 
 build test: phony test_variant
 

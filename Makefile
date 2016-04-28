@@ -1,9 +1,9 @@
 all: test/variant_test
 
-test/variant_test: test/variant_test.o
-	$(CXX) $< -o $@
+test/variant_test: test/variant_test.o test/variant_test_main.o
+	$(CXX) $^ -o $@
 
-test/variant_test.o: test/variant_test.cpp
+%.o: %.cpp
 	$(CXX) $< -o $@ -c -std=c++14 -I.
 
 test:

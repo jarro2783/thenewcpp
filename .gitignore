@@ -11,9 +11,12 @@
 *.la
 *.a
 
-#ninja files
+# ninja files
 .ninja_deps
 .ninja_log
 
-#vim files
+# vim files
 *.swp
+
+# compiled programs
+variant_test
