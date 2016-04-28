@@ -12,3 +12,4 @@ matrix:
           sources: &sources
             - llvm-toolchain-precise-3.8
             - ubuntu-toolchain-r-test
+script: make && make test
