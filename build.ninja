@@ -6,6 +6,21 @@ rule cxx
 rule cxx_link
     command = g++ $in -o $out
 
+rule execute
+    command = $in
+
 build test/variant.o: cxx test/variant.cpp
 
 build test/variant: cxx_link test/variant.o
+
+build test/parameter.o: cxx test/parameter.cpp
+
+build test/variant_test.o: cxx test/variant_test.cpp
+
+build test/variant_test: cxx_link test/variant_test.o
+
+build test: phony test_variant
+
+build test_variant: execute test/variant_test
+
+default test/variant_test test/variant
