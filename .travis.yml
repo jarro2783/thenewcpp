@@ -1,5 +1,6 @@
 sudo: required
 language: generic
+packages: ninja-build
 matrix:
   include:
     - os: linux
@@ -18,4 +19,4 @@ matrix:
           packages:
             - clang-3.8
           sources: *sources
-script: make && make test
+script: ninja && ninja test
