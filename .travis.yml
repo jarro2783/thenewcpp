@@ -8,6 +8,7 @@ matrix:
         apt:
           packages:
             - g++-5
+            - ninja-build
           sources: &sources
             - llvm-toolchain-precise-3.8
             - ubuntu-toolchain-r-test
@@ -17,5 +18,6 @@ matrix:
         apt:
           packages:
             - clang-3.8
+            - ninja-build
           sources: *sources
 script: ./configure && ninja && ninja test
