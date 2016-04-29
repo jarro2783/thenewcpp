@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# this is a basic configuration script for peg++
+# it checks some properties of the system and turns build.ninja.in into
+# build.ninja by replacing variables of the form @ID@
+
+# important environment variables:
+#  CXX: the c++ compiler, defaults to g++
+#  CXXFLAGS: extra compiler flags
+#  LDFLAGS: extra linker flags
+
+# command line options:
+#  --prefix=DIR: the installation prefix, defaults to /usr/local
+
+# outputs:
+#  @CXXFLAGS@: just copies $CXXFLAGS
+#  @LDFLAGS@: just copies $LDFLAGS
+#  @PREFIX@: copies the installation prefix
+#  @CXX@: the c++ compiler
+
+configure() {
+    sed -e 's&@CXXFLAGS@&'"$CXXFLAGS"'&g' \
+      -e 's&@CXX@&'$CXX'&g' \
+      -e 's&@PREFIX@&'$prefix'&g' \
+      -e 's&@LDFLAGS@&'"$LDFLAGS"'&g' \
+      < $1/build.ninja.in > $1/build.ninja
+}
+
+do_subdirs() {
+    for d in $@; do
+        configure $d
+    done
+}
+
+prefix=/usr/local
+CXX=${CXX:-g++}
+
+echo $#
+
+echo -n $0 > reconfigure
+for i in "$@"; do
+    echo -n ' '\"$i\" >> reconfigure
+done
+chmod 755 reconfigure
+
+prev=
+for option
+do
+    if test -n "$prev"; then
+        eval $prev=\$option
+        prev=
+        continue
+    fi
+
+    case $option in
+        --prefix=*)
+            prefix=`echo $option | sed 's/[-a-z]*=//'` ;;
+        --prefix)
+            prev=prefix ;;
+        CXX=*)
+            CXX=`echo $option | sed 's/CXX=//'` ;;
+        LDFLAGS=*)
+            LDFLAGS=`echo $option | sed 's/LDFLAGS=//'` ;;
+        CXXFLAGS=*)
+            CXXFLAGS=`echo $option | sed 's/CXXFLAGS=//'` ;;
+    esac
+done
+
+echo $prefix
+echo $CXX
+
+for var in CXXFLAGS \
+    CXX \
+    prefix \
+    LDFLAGS; do
+
+    eval echo $var=\$$var
+    eval $var=$(eval echo -e \"\$$var\" | sed 's/\([&\$\" ]\)/\\\\\\\1/g')
+    eval echo $var=\$$var
+done
+
+do_subdirs .
