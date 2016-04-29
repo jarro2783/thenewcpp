@@ -1,10 +1,15 @@
+cxxcompiler = @CXX@
+cxxflags = @CXXFLAGS@
+ldflags = @LDFLAGS@
+
 rule cxx
-    command = g++ $in -o $out -c -O0 -Wall -std=c++14 -MMD -MF $out.d -I. $
-      -fdiagnostics-color=always -g
+    command = $cxxcompiler $in -o $out -c -O2 -Wall -std=c++14 $
+      -MMD -MF $out.d -I. $
+      -fdiagnostics-color=always -g $cxxflags
     depfile = $out.d
 
 rule cxx_link
-    command = g++ $in -o $out
+    command = g++ $in -o $out $ldflags
 
 rule execute
     command = $in
