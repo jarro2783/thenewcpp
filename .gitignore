@@ -16,6 +16,9 @@
 .ninja_log
 build.ninja
 
+# build files
+reconfigure
+
 # vim files
 *.swp
 

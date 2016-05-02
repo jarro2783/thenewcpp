@@ -1,6 +1,21 @@
-#include "catch.hpp"
-
 #include <juice/variant.hpp>
+
+#include "catch.hpp"
+#include "test_facilities.hpp"
+
+// Catch must override == and we can't seem to write v == expr. We need to
+// use v.operator==.
+
+TEST_CASE("Destruct objects", "[destructor]")
+{
+  bool destructed = false;
+  {
+    juice::variant<DestructTracker, int>(
+      juice::emplaced_type<DestructTracker>, destructed);
+  }
+
+  REQUIRE(destructed);
+}
 
 TEST_CASE("Emplace correct position", "[emplace]")
 {
@@ -13,6 +28,13 @@ TEST_CASE("Emplace correct position", "[emplace]")
   v.emplace<0>(100);
   REQUIRE(v.index() == 0);
   REQUIRE(juice::get<0>(v) == 100);
+}
+
+TEST_CASE("Assign string", "[assign]")
+{
+  juice::variant<int, std::string, float> v("Hello world");
+  REQUIRE(v.index() == 1);
+  REQUIRE(v.operator==("Hello world"));
 }
 
 TEST_CASE("Get correct type", "[get]")
@@ -28,7 +50,7 @@ TEST_CASE("Get correct type", "[get]")
     v = std::string("Hello world");
     REQUIRE(v.index() == 1);
     REQUIRE(juice::get<std::string>(v) == "Hello world");
-    REQUIRE(v == "Hello world");
+    REQUIRE(v.operator==("Hello world"));
   }
 
   SECTION("convert to float") {

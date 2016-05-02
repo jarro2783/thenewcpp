@@ -55,6 +55,7 @@ do so, all subject to the following:
 #define JUICE_VARIANT_HPP_INCLUDED
 
 #include <cassert>
+#include <stdexcept>
 #include <functional>
 #include <initializer_list>
 #include <new>
@@ -798,13 +799,20 @@ namespace juice
 
     public:
 
+    /*
     template <typename = typename
       std::enable_if<
         std::is_default_constructible<First>::value
       >::type
     >
+    */
+    template <typename Dummy = char>
     constexpr
-    variant() noexcept(std::is_nothrow_default_constructible<First>::value)
+    variant(typename std::enable_if<
+        std::is_default_constructible<First>::value, Dummy
+      >::type* = nullptr
+    )
+    noexcept(std::is_nothrow_default_constructible<First>::value)
     : m_which(0)
     {
       emplace_internal<First>();

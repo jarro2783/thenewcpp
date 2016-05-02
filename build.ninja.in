@@ -9,7 +9,7 @@ rule cxx
     depfile = $out.d
 
 rule cxx_link
-    command = g++ $in -o $out $ldflags
+    command = $cxxcompiler $in -o $out $ldflags
 
 rule execute
     command = $in

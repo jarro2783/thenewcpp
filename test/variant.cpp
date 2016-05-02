@@ -220,9 +220,18 @@ bar()
   std::cout << "Second modify = 6: " << cint << std::endl;
 }
 
+void
+string_equal()
+{
+  juice::variant<int, std::string, float> v("Hello world");
+  bool b = v == "Hello world";
+  std::cout << "String equal: " << std::boolalpha << b << std::endl;
+}
+
 int main(int argc, char** argv)
 {
   foo();
   bar();
+  string_equal();
   return 0;
 }
