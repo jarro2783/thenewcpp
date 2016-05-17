@@ -67,10 +67,12 @@ TEST_CASE("Comparison", "[compare]") {
   MyVariant a(4);
   MyVariant b(5);
   MyVariant c("Hello world");
+  MyVariant d(5);
 
   REQUIRE(a < b);
   REQUIRE(a < c);
   REQUIRE(c < MyVariant("Hi"));
   REQUIRE(b > a);
   REQUIRE(c > a);
+  REQUIRE(b == d);
 }
