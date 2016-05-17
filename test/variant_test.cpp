@@ -60,3 +60,17 @@ TEST_CASE("Get correct type", "[get]")
     REQUIRE(v == 42.5f);
   }
 }
+
+TEST_CASE("Comparison", "[compare]") {
+  typedef juice::variant<int, std::string> MyVariant;
+
+  MyVariant a(4);
+  MyVariant b(5);
+  MyVariant c("Hello world");
+
+  REQUIRE(a < b);
+  REQUIRE(a < c);
+  REQUIRE(c < MyVariant("Hi"));
+  REQUIRE(b > a);
+  REQUIRE(c > a);
+}
