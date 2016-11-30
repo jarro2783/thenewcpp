@@ -75,6 +75,8 @@ namespace juice
     struct false_ {};
   }
 
+  constexpr size_t variant_npos = -1;
+
   template <typename T> struct emplaced_type_t{};
   template <typename T> constexpr emplaced_type_t<T> emplaced_type{};
   template <size_t I> struct emplaced_index_t {};
@@ -318,7 +320,7 @@ namespace juice
     struct variant_universal_check
     {
       static constexpr bool value =
-      //  tuple_find<T, std::tuple<Types...>>::value != tuple_not_found
+      //  tuple_find<T, std::tuple<Types...>>::value != variant_npos
         !std::is_same<T, variant<Types...>>::value
       ;
     };
@@ -969,9 +971,9 @@ namespace juice
       if (this != &rhs)
       {
         auto w = rhs.which();
-        if (w == tuple_not_found)
+        if (w == variant_npos)
         {
-          if (index() != tuple_not_found)
+          if (index() != variant_npos)
           {
             destroy();
           }
@@ -1045,7 +1047,7 @@ namespace juice
     bool
     valueless_by_exception() const
     {
-      return m_which == tuple_not_found;
+      return m_which == variant_npos;
     }
 
     template <typename Internal, typename Visitor, typename... Args>
@@ -1171,10 +1173,10 @@ namespace juice
     destroy()
     {
       //shortcut here to bypass calling the empty destroy function
-      if (index() != tuple_not_found)
+      if (index() != variant_npos)
       {
         apply_visitor_internal(destroyer());
-        indicate_which(tuple_not_found);
+        indicate_which(variant_npos);
       }
     }
 
