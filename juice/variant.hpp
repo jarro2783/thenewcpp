@@ -122,9 +122,8 @@ namespace juice
   template <typename T>
   constexpr in_place_type_t<T> in_place_type{};
 
-  template <typename T> constexpr in_place_type_t<T> emplaced_type{};
-  template <size_t I> struct emplaced_index_t {};
-  template <size_t I> constexpr emplaced_index_t<I> emplaced_index{};
+  template <size_t I> struct in_place_index_t {};
+  template <size_t I> constexpr in_place_index_t<I> in_place_index{};
 
   template <typename R = void>
   class
@@ -939,7 +938,7 @@ namespace juice
     }
 
     template <size_t I, typename... Args>
-    explicit variant(emplaced_index_t<I>, Args&&... args)
+    explicit variant(in_place_index_t<I>, Args&&... args)
     {
       emplace_internal<variant_alternative_t<I, variant>>(
         std::forward<Args>(args)...);
@@ -947,7 +946,7 @@ namespace juice
     }
 
     template <size_t I, typename U, typename... Args>
-    explicit variant(emplaced_index_t<I>,
+    explicit variant(in_place_index_t<I>,
       std::initializer_list<U> il,
       Args&&... args)
     {

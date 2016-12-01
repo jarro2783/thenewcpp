@@ -160,7 +160,7 @@ foo()
   //empty assignment
   d = a;
 
-  MyVariant emplaced(emplaced_index_t<1>(), "test");
+  MyVariant emplaced(in_place_index<1>, "test");
 
   std::string moveassign = "moveassign";
   emplaced = "assign";

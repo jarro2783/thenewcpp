@@ -11,7 +11,7 @@ TEST_CASE("Destruct objects", "[destructor]")
   bool destructed = false;
   {
     juice::variant<DestructTracker, int>(
-      juice::emplaced_type<DestructTracker>, destructed);
+      juice::in_place_type<DestructTracker>, destructed);
   }
 
   REQUIRE(destructed);
