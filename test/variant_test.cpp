@@ -6,6 +6,45 @@
 // Catch must override == and we can't seem to write v == expr. We need to
 // use v.operator==.
 
+namespace
+{
+  template <typename A, typename B>
+  struct types_equal :
+    public std::integral_constant<bool, false>
+  {
+  };
+
+  template <typename A>
+  struct types_equal<A, A> :
+    public std::integral_constant<bool, true>
+  {
+  };
+
+  template <typename A, typename B>
+  constexpr bool types_equal_v = types_equal<A, B>::value;
+
+  template <bool B>
+  struct validate
+    : public std::integral_constant<bool, true>
+  {
+    static_assert(B, "Validation Error");
+  };
+
+  template <bool B>
+  constexpr bool validate_v = validate<B>::value;
+}
+
+// There is nothing for Catch to test here because these are all
+// compile time assertions.
+TEST_CASE("Correct types", "[types]")
+{
+  juice::variant<int, std::string> x;
+  REQUIRE((
+    validate_v<types_equal_v<decltype(juice::get<int>(x)), int&>> &&
+    validate_v<types_equal_v<decltype(juice::get<int>(std::move(x))), int&&>>
+  ));
+}
+
 TEST_CASE("Destruct objects", "[destructor]")
 {
   bool destructed = false;

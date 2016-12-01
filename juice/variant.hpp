@@ -1170,7 +1170,6 @@ namespace juice
 
     template <size_t I>
     const variant_alternative_t<I, variant<Types...>>&
-    //auto&
     get() const &
     {
       if (index() != I)
@@ -1189,7 +1188,6 @@ namespace juice
 
     template <size_t I>
     variant_alternative_t<I, variant<Types...>>&
-    //auto&
     get() &
     {
       using E = variant_alternative_t<I, variant>;
@@ -1455,7 +1453,6 @@ namespace juice
   // === first the indexed versions ===
 
   template <size_t I, typename... Types>
-  //typename std::tuple_element<I, variant<Types...>>::type&
   auto&
   get(variant<Types...>& v)
   {
@@ -1463,7 +1460,6 @@ namespace juice
   }
 
   template <size_t I, typename... Types>
-  //typename std::tuple_element<I, variant<Types...>>::type&
   auto&
   get(const variant<Types...>& v)
   {
