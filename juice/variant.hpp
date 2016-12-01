@@ -85,6 +85,27 @@ namespace juice
 
   template <size_t I, typename T> struct variant_alternative;
 
+  template <size_t I, typename T> struct variant_alternative<I, const T>
+  {
+    typedef std::add_const_t<typename variant_alternative<I, T>::type> type;
+  };
+
+  template <size_t I, typename T> struct variant_alternative<I, volatile T>
+  {
+    typedef std::add_volatile_t<typename variant_alternative<I, T>::type> type;
+  };
+
+  template <size_t I, typename T>
+  struct variant_alternative<I, const volatile T>
+  {
+    typedef std::add_cv_t<
+      typename variant_alternative<I, T>::type
+    > type;
+  };
+
+  template <size_t I, typename T>
+  using variant_alternative_t = typename variant_alternative<I, T>::type;
+
   template <size_t I, typename... Types>
   struct variant_alternative<I, juice::variant<Types...>>
     : public std::tuple_element<I, std::tuple<Types...>>
@@ -913,7 +934,7 @@ namespace juice
     template <size_t I, typename... Args>
     explicit variant(emplaced_index_t<I>, Args&&... args)
     {
-      emplace_internal<typename variant_alternative<I, variant>::type>(
+      emplace_internal<variant_alternative_t<I, variant>>(
         std::forward<Args>(args)...);
       indicate_which(I);
     }
@@ -923,7 +944,7 @@ namespace juice
       std::initializer_list<U> il,
       Args&&... args)
     {
-      emplace_internal<typename variant_alternative<I, variant>::type>(
+      emplace_internal<variant_alternative_t<I, variant>>(
         il, std::forward<Args>(args)...);
       indicate_which(I);
     }
@@ -950,7 +971,7 @@ namespace juice
       {
         destroy();
       }
-      emplace_internal<typename variant_alternative<I, variant>::type>(std::forward<Args>(args)...);
+      emplace_internal<variant_alternative_t<I, variant>>(std::forward<Args>(args)...);
       indicate_which(I);
     }
 
@@ -961,7 +982,7 @@ namespace juice
       {
         destroy();
       }
-      emplace_internal<typename variant_alternative<I, variant>::type>(il, std::forward<Args>(args)...);
+      emplace_internal<variant_alternative_t<I, variant>>(il, std::forward<Args>(args)...);
       indicate_which(I);
     }
 
@@ -1096,7 +1117,7 @@ namespace juice
     }
 
     template <size_t I>
-    const typename variant_alternative<I, variant<Types...>>::type&
+    const variant_alternative_t<I, variant<Types...>>&
     //auto&
     get() const &
     {
@@ -1107,7 +1128,7 @@ namespace juice
 
       return reinterpret_cast<
         const ref_type_t<
-          typename variant_alternative<I, variant>::type
+          variant_alternative_t<I, variant>
         >&
       >(
         m_storage
@@ -1115,11 +1136,11 @@ namespace juice
     }
 
     template <size_t I>
-    typename variant_alternative<I, variant<Types...>>::type&
+    variant_alternative_t<I, variant<Types...>>&
     //auto&
     get() &
     {
-      using E = typename variant_alternative<I, variant>::type;
+      using E = variant_alternative_t<I, variant>;
       if (index() != I)
       {
         throw bad_variant_access("Tuple does not contain requested item");
@@ -1135,10 +1156,10 @@ namespace juice
     }
 
     template <size_t I>
-    typename variant_alternative<I, variant>::type&&
+    variant_alternative_t<I, variant>&&
     get() &&
     {
-      using E = typename variant_alternative<I, variant>::type;
+      using E = variant_alternative_t<I, variant>;
       if (index() != I)
       {
         throw bad_variant_access("Tuple does not contain requested item");
