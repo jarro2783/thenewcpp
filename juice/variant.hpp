@@ -114,8 +114,15 @@ namespace juice
 
   constexpr size_t variant_npos = -1;
 
-  template <typename T> struct emplaced_type_t{};
-  template <typename T> constexpr emplaced_type_t<T> emplaced_type{};
+  template <typename T>
+  struct in_place_type_t{
+    explicit in_place_type_t() = default;
+  };
+
+  template <typename T>
+  constexpr in_place_type_t<T> in_place_type{};
+
+  template <typename T> constexpr in_place_type_t<T> emplaced_type{};
   template <size_t I> struct emplaced_index_t {};
   template <size_t I> constexpr emplaced_index_t<I> emplaced_index{};
 
@@ -916,14 +923,14 @@ namespace juice
     }
 
     template <typename T, typename... Args>
-    explicit variant(emplaced_type_t<T>, Args&&... args)
+    explicit variant(in_place_type_t<T>, Args&&... args)
     {
       emplace_internal<T>(std::forward<Args>(args)...);
       indicate_which(tuple_find<T, variant<Types...>>::value);
     }
 
     template <typename T, typename U, typename... Args>
-    explicit variant(emplaced_type_t<T>,
+    explicit variant(in_place_type_t<T>,
       std::initializer_list<U> il,
       Args&&... args)
     {
