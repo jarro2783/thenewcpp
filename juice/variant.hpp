@@ -31,7 +31,6 @@ do so, all subject to the following:
 
 // This file is an implementation of the variant in proposal P0088R0 for C++,
 // http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2015/p0088r0.pdf
-// The needed meta-function tuple_find is implemented in tuple.hpp
 // In summary:
 //   1. It is almost never empty, and visiting an empty variant is undefined.
 //   2. Accessing the wrong element throws. But the variant must still be valid.
@@ -65,10 +64,15 @@ do so, all subject to the following:
 
 #include "conjunction.hpp"
 #include "mpl.hpp"
-#include "tuple.hpp"
 
 namespace juice
 {
+  template <typename... Types>
+  class variant;
+
+  template <typename T>
+  class recursive_wrapper;
+
   namespace MPL
   {
     struct true_ {};
@@ -113,6 +117,48 @@ namespace juice
   };
 
   constexpr size_t variant_npos = -1;
+
+  namespace detail
+  {
+    template<typename T, typename V>
+    struct variant_find;
+
+    template <size_t N, typename T, typename... Types>
+    struct variant_find_helper;
+
+    template <size_t N, typename T, typename First, typename... Types>
+    struct variant_find_helper<N, T, First, Types...> :
+      public variant_find_helper<N+1, T, Types...>
+    {
+    };
+
+    template <size_t N, typename T, typename... Types>
+    struct variant_find_helper<N, T, recursive_wrapper<T>, Types...> :
+      public std::integral_constant<std::size_t, N>
+    {
+    };
+
+    template <size_t N, typename T, typename... Types>
+    struct variant_find_helper<N, T, T, Types...> :
+      public std::integral_constant<std::size_t, N>
+    {
+    };
+
+    template <size_t N, typename T>
+    struct variant_find_helper<N, T> :
+      public std::integral_constant<decltype(variant_npos), variant_npos>
+    {
+    };
+
+    template <typename T, typename... Types>
+    struct variant_find<T, variant<Types...>> :
+      public variant_find_helper<0, T, Types...>
+    {
+    };
+
+    template <typename T, typename U>
+    constexpr size_t variant_find_v = variant_find<T, U>::value;
+  }
 
   template <typename T>
   struct in_place_type_t{
@@ -363,7 +409,7 @@ namespace juice
     struct variant_universal_check
     {
       static constexpr bool value =
-      //  tuple_find<T, std::tuple<Types...>>::value != variant_npos
+      //  detail::variant_find<T, std::tuple<Types...>>::value != variant_npos
         !std::is_same<T, variant<Types...>>::value
       ;
     };
@@ -892,7 +938,7 @@ namespace juice
       //initialiser<0, Types...>::initialise(*this, std::forward<T>(t));
 
       typedef decltype(assign_FUN<Types...>::FUN(std::forward<T>(t))) type;
-      constexpr auto I = tuple_find_v<type, variant>;
+      constexpr auto I = detail::variant_find_v<type, variant>;
 
       construct<type>(std::forward<T>(t));
       indicate_which(I);
@@ -925,7 +971,7 @@ namespace juice
     explicit variant(in_place_type_t<T>, Args&&... args)
     {
       emplace_internal<T>(std::forward<Args>(args)...);
-      indicate_which(tuple_find<T, variant<Types...>>::value);
+      indicate_which(detail::variant_find<T, variant<Types...>>::value);
     }
 
     template <typename T, typename U, typename... Args>
@@ -934,7 +980,7 @@ namespace juice
       Args&&... args)
     {
       emplace_internal<T>(il, std::forward<Args>(args)...);
-      indicate_which(tuple_find<T, variant<Types...>>::value);
+      indicate_which(detail::variant_find<T, variant<Types...>>::value);
     }
 
     template <size_t I, typename... Args>
@@ -958,13 +1004,13 @@ namespace juice
     template <typename T, typename... Args>
     void emplace(Args&&... args)
     {
-      return emplace<tuple_find<T, variant>::value>(std::forward<Args>(args)...);
+      return emplace<detail::variant_find<T, variant>::value>(std::forward<Args>(args)...);
     }
 
     template <typename T, typename U, typename... Args>
     void emplace(std::initializer_list<U> il, Args&&... args)
     {
-      return emplace<tuple_find<T, variant>::value>(
+      return emplace<detail::variant_find<T, variant>::value>(
         il,
         std::forward<Args>(args)...
       );
@@ -1055,7 +1101,7 @@ namespace juice
     )
     {
       typedef decltype(assign_FUN<Types...>::FUN(std::forward<T>(t))) type;
-      constexpr auto I = tuple_find_v<type, variant>;
+      constexpr auto I = detail::variant_find_v<type, variant>;
 
       if (index() != I)
       {
@@ -1256,7 +1302,7 @@ namespace juice
   template <typename T>
   struct get_visitor
   {
-    typedef T* result_type;
+    typedef T&& result_type;
 
     result_type
     operator()()
@@ -1265,16 +1311,16 @@ namespace juice
     }
 
     result_type
-    operator()(T& val) const
+    operator()(T&& val) const
     {
-      return &val;
+      return std::move(val);
     }
 
     template <typename U>
     result_type
     operator()(const U&) const
     {
-      return nullptr;
+      throw bad_get();
     }
   };
 
@@ -1433,7 +1479,7 @@ namespace juice
 
   template <size_t I, typename... Types>
   std::add_pointer_t<
-    unwrapped_type_t<std::tuple_element_t<I, variant<Types...>>>
+    unwrapped_type_t<variant_alternative_t<I, variant<Types...>>>
   >
   get_if(variant<Types...>* v)
   {
@@ -1448,7 +1494,7 @@ namespace juice
   template <size_t I, typename... Types>
   const
   std::add_pointer_t<const
-    unwrapped_type_t<std::tuple_element_t<I, variant<Types...>>>
+    unwrapped_type_t<variant_alternative_t<I, variant<Types...>>>
   >
   get_if(const variant<Types...>* v)
   {
@@ -1467,7 +1513,7 @@ namespace juice
   get_if(variant<Types...>* var)
   {
     //return visit(get_visitor<T>(), *var);
-    return get_if<tuple_find<T, variant<Types...>>::value>(var);
+    //return get_if<detail::variant_find<T, variant<Types...>>::value>(var);
   }
 
   template <typename T, typename... Types>
@@ -1475,36 +1521,30 @@ namespace juice
   get_if(const variant<Types...>* var)
   {
     //return visit(get_visitor<const T>(), *var);
-    return get_if<tuple_find<T, variant<Types...>>::value>(var);
+    return get_if<detail::variant_find<T, variant<Types...>>::value>(var);
   }
 
   template <typename T, typename... Types>
+  constexpr
   T&
   get (variant<Types...>& var)
   {
-    //T* t = visit(get_visitor<T>(), var);
-    //if (t == nullptr){throw bad_get();}
-
-    //return *t;
-    return get<tuple_find<T, variant<Types...>>::value>(var);
+    return get<detail::variant_find_v<T, variant<Types...>>>(var);
   }
 
   template <typename T, typename... Types>
+  constexpr
   const T&
   get (const variant<Types...>& var)
   {
-    //const T* t = visit(get_visitor<const T>(), &var);
-    //if (t == nullptr) {throw bad_get();}
-
-    //return *t;
-    return get<tuple_find<T, variant<Types...>>::value>(var);
+    return get<detail::variant_find_v<T, variant<Types...>>>(var);
   }
 
   template <typename T, typename... Types>
   T&&
   get(variant<Types...>&& v)
   {
-    return get<tuple_find<T, variant<Types...>>::value>(std::move(v));
+    return get<detail::variant_find<T, variant<Types...>>::value>(std::move(v));
   }
 
   struct visitor_applier
@@ -1539,7 +1579,7 @@ namespace juice
   }
 
   template <typename T, typename... Types>
-  bool holds_alternative(const variant<Types...>& v)
+  bool holds_alternative(const variant<Types...>& v) noexcept
   {
     return variant_is_type<T>(v);
   }
