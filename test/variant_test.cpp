@@ -1,3 +1,5 @@
+#include <type_traits>
+
 #include <juice/variant.hpp>
 
 #include "catch.hpp"
@@ -9,15 +11,11 @@
 namespace
 {
   template <typename A, typename B>
-  struct types_equal :
-    public std::integral_constant<bool, false>
+  struct types_equal
   {
-  };
-
-  template <typename A>
-  struct types_equal<A, A> :
-    public std::integral_constant<bool, true>
-  {
+    static constexpr auto value =
+      std::integral_constant<bool, std::is_same<A, B>::value>::value;
+    static_assert(value, "Types not equal");
   };
 
   template <typename A, typename B>
@@ -38,10 +36,19 @@ namespace
 // compile time assertions.
 TEST_CASE("Correct types", "[types]")
 {
+  int some_int = 42;
+
   juice::variant<int, std::string> x;
+  juice::variant<int&&, char&&> move_refs(std::move(some_int));
+  juice::variant<int&, char&> refs(some_int);
+
   REQUIRE((
-    validate_v<types_equal_v<decltype(juice::get<int>(x)), int&>> &&
-    validate_v<types_equal_v<decltype(juice::get<int>(std::move(x))), int&&>>
+    types_equal_v<decltype(juice::get<int>(x)), int&> &&
+    types_equal_v<
+      decltype(juice::get<int>(std::move(x))), int&&> &&
+    types_equal_v<
+      decltype(juice::get<int&&>(std::move(x))), int&&> &&
+    types_equal_v<decltype(juice::get<int&>(refs)), int&>
   ));
 }
 
