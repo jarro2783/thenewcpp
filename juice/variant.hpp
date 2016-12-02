@@ -1453,6 +1453,7 @@ namespace juice
   // === first the indexed versions ===
 
   template <size_t I, typename... Types>
+  constexpr
   auto&
   get(variant<Types...>& v)
   {
@@ -1460,6 +1461,7 @@ namespace juice
   }
 
   template <size_t I, typename... Types>
+  constexpr
   auto&
   get(const variant<Types...>& v)
   {
@@ -1467,6 +1469,7 @@ namespace juice
   }
 
   template <size_t I, typename... Types>
+  constexpr
   auto&&
   get(variant<Types...>&& v)
   {
@@ -1474,10 +1477,19 @@ namespace juice
   }
 
   template <size_t I, typename... Types>
+  constexpr
+  auto&&
+  get(const variant<Types...>&& v)
+  {
+    return recursive_unwrap(std::move(v).template get<I>());
+  }
+
+  template <size_t I, typename... Types>
+  constexpr
   std::add_pointer_t<
     unwrapped_type_t<variant_alternative_t<I, variant<Types...>>>
   >
-  get_if(variant<Types...>* v)
+  get_if(variant<Types...>* v) noexcept
   {
     if (v->index() != I)
     {
@@ -1488,11 +1500,11 @@ namespace juice
   }
 
   template <size_t I, typename... Types>
-  const
-  std::add_pointer_t<const
+  constexpr
+  const std::add_pointer_t<const
     unwrapped_type_t<variant_alternative_t<I, variant<Types...>>>
   >
-  get_if(const variant<Types...>* v)
+  get_if(const variant<Types...>* v) noexcept
   {
     if (v->index() != I)
     {
@@ -1505,16 +1517,18 @@ namespace juice
   // === then the type versions ===
 
   template <typename T, typename... Types>
+  constexpr
   std::add_pointer_t<T>
-  get_if(variant<Types...>* var)
+  get_if(variant<Types...>* var) noexcept
   {
     //return visit(get_visitor<T>(), *var);
     //return get_if<detail::variant_find<T, variant<Types...>>::value>(var);
   }
 
   template <typename T, typename... Types>
+  constexpr
   const std::add_pointer_t<const T>
-  get_if(const variant<Types...>* var)
+  get_if(const variant<Types...>* var) noexcept
   {
     //return visit(get_visitor<const T>(), *var);
     return get_if<detail::variant_find<T, variant<Types...>>::value>(var);

@@ -39,6 +39,7 @@ TEST_CASE("Correct types", "[types]")
   int some_int = 42;
 
   juice::variant<int, std::string> x;
+  const juice::variant<int, std::string> cx;
   juice::variant<int&&, char&&> move_refs(std::move(some_int));
   juice::variant<int&, char&> refs(some_int);
 
@@ -48,7 +49,19 @@ TEST_CASE("Correct types", "[types]")
       decltype(juice::get<int>(std::move(x))), int&&> &&
     types_equal_v<
       decltype(juice::get<int&&>(std::move(x))), int&&> &&
-    types_equal_v<decltype(juice::get<int&>(refs)), int&>
+    types_equal_v<decltype(juice::get<int&>(refs)), int&> &&
+
+    types_equal_v<decltype(juice::get_if<0>(&x)), int*> &&
+    types_equal_v<decltype(juice::get_if<1>(&x)), std::string*> &&
+    types_equal_v<decltype(juice::get_if<int>(&x)), int*> &&
+    types_equal_v<decltype(juice::get_if<std::string>(&x)), std::string*> &&
+
+    //const values
+    types_equal_v<decltype(juice::get_if<0>(&cx)), const int*> &&
+    types_equal_v<decltype(juice::get_if<1>(&cx)), const std::string*> &&
+    types_equal_v<decltype(juice::get_if<int>(&cx)), const int*> &&
+    types_equal_v<decltype(juice::get_if<std::string>(&cx)),
+      const std::string*>
   ));
 }
 
