@@ -63,6 +63,9 @@ TEST_CASE("Correct types", "[types]")
     types_equal_v<decltype(juice::get_if<std::string>(&cx)),
       const std::string*>
   ));
+
+  //TODO: This should pass when ~variant is a trivial destructor
+  //constexpr juice::variant<int, char> y(5);
 }
 
 TEST_CASE("Destruct objects", "[destructor]")

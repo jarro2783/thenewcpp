@@ -1235,8 +1235,6 @@ namespace juice
 
     size_t m_which;
 
-    static std::function<void(void*)> m_handlers[1 + sizeof...(Types)];
-
     void indicate_which(size_t which) {m_which = which;}
 
     void* address() {return &m_storage;}
