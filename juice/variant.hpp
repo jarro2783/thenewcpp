@@ -70,6 +70,9 @@ namespace juice
   template <typename... Types>
   class variant;
 
+  template <typename... Types>
+  class variant_storage_base;
+
   template <typename T>
   class recursive_wrapper;
 
@@ -410,11 +413,11 @@ namespace juice
     {
       static constexpr bool value =
       //  detail::variant_find<T, std::tuple<Types...>>::value != variant_npos
-        !std::is_same<T, variant<Types...>>::value
+        !std::is_same<T, variant_storage_base<Types...>>::value
       ;
     };
 
-  }    
+  }
 
   struct monostate {};
 
@@ -514,6 +517,28 @@ namespace juice
 
   template <typename T>
   using ref_type_t = typename ref_type<T>::type;
+
+  template <typename... MyTypes>
+  struct assign_FUN
+  {
+    static void FUN();
+  };
+
+  template <typename Current, typename... MyTypes>
+  struct assign_FUN<Current, MyTypes...> : public assign_FUN<MyTypes...>
+  {
+    using assign_FUN<MyTypes...>::FUN;
+
+    static Current
+    FUN(Current);
+  };
+
+  namespace detail
+  {
+    template <typename T, typename... Types>
+    using get_overload_t = decltype(assign_FUN<Types...>::FUN(
+      std::declval<T>()));
+  }
 
   template <typename... Types>
   class variant_storage_base
@@ -769,21 +794,6 @@ namespace juice
       }
     };
 
-    template <typename... MyTypes>
-    struct assign_FUN
-    {
-      static void FUN();
-    };
-
-    template <typename Current, typename... MyTypes>
-    struct assign_FUN<Current, MyTypes...> : public assign_FUN<MyTypes...>
-    {
-      using assign_FUN<MyTypes...>::FUN;
-
-      static Current
-      FUN(Current);
-    };
-
     template <size_t Which, typename... MyTypes>
     struct initialiser;
 
@@ -890,6 +900,7 @@ namespace juice
 
     public:
 
+    #if 0
     /*
     template <typename = typename
       std::enable_if<
@@ -908,6 +919,9 @@ namespace juice
     {
       emplace_internal<First>();
     }
+    #endif
+
+    variant_storage_base() = default;
 
     ~variant_storage_base()
     {
@@ -938,7 +952,7 @@ namespace juice
       //initialiser<0, Types...>::initialise(*this, std::forward<T>(t));
 
       typedef decltype(assign_FUN<Types...>::FUN(std::forward<T>(t))) type;
-      constexpr auto I = detail::variant_find_v<type, variant_storage_base>;
+      constexpr auto I = detail::variant_find_v<type, variant<Types...>>;
 
       construct<type>(std::forward<T>(t));
       indicate_which(I);
@@ -946,8 +960,8 @@ namespace juice
 
     variant_storage_base(const variant_storage_base& rhs)
     {
-      rhs.apply_visitor_internal(constructor(*this));
-      indicate_which(rhs.which());
+      //rhs.apply_visitor_internal(constructor(*this));
+      //indicate_which(rhs.which());
     }
 
     variant_storage_base(variant_storage_base&& rhs)
@@ -971,7 +985,7 @@ namespace juice
     explicit variant_storage_base(in_place_type_t<T>, Args&&... args)
     {
       emplace_internal<T>(std::forward<Args>(args)...);
-      indicate_which(detail::variant_find<T, variant_storage_base<Types...>>::value);
+      indicate_which(detail::variant_find<T, variant<Types...>>::value);
     }
 
     template <typename T, typename U, typename... Args>
@@ -980,13 +994,13 @@ namespace juice
       Args&&... args)
     {
       emplace_internal<T>(il, std::forward<Args>(args)...);
-      indicate_which(detail::variant_find<T, variant_storage_base<Types...>>::value);
+      indicate_which(detail::variant_find<T, variant<Types...>>::value);
     }
 
     template <size_t I, typename... Args>
     explicit variant_storage_base(in_place_index_t<I>, Args&&... args)
     {
-      emplace_internal<variant_alternative_t<I, variant_storage_base>>(
+      emplace_internal<variant_alternative_t<I, variant<Types...>>>(
         std::forward<Args>(args)...);
       indicate_which(I);
     }
@@ -996,7 +1010,7 @@ namespace juice
       std::initializer_list<U> il,
       Args&&... args)
     {
-      emplace_internal<variant_alternative_t<I, variant_storage_base>>(
+      emplace_internal<variant_alternative_t<I, variant<Types...>>>(
         il, std::forward<Args>(args)...);
       indicate_which(I);
     }
@@ -1023,7 +1037,7 @@ namespace juice
       {
         destroy();
       }
-      emplace_internal<variant_alternative_t<I, variant_storage_base>>(std::forward<Args>(args)...);
+      emplace_internal<variant_alternative_t<I, variant<Types...>>>(std::forward<Args>(args)...);
       indicate_which(I);
     }
 
@@ -1034,11 +1048,13 @@ namespace juice
       {
         destroy();
       }
-      emplace_internal<variant_alternative_t<I, variant_storage_base>>(il, std::forward<Args>(args)...);
+      emplace_internal<variant_alternative_t<I, variant<Types...>>>(il, std::forward<Args>(args)...);
       indicate_which(I);
     }
 
-    variant_storage_base& operator=(const variant_storage_base& rhs)
+    #if 0
+    variant_storage_base&
+    operator=(const variant_storage_base& rhs)
     {
       if (this != &rhs)
       {
@@ -1047,8 +1063,10 @@ namespace juice
       }
       return *this;
     }
+    #endif
 
-    variant_storage_base& operator=(variant_storage_base&& rhs) 
+    variant_storage_base&
+    operator=(variant_storage_base&& rhs) 
     noexcept(
       conjunction<(
         std::is_nothrow_move_constructible<Types>::value &&
@@ -1169,7 +1187,7 @@ namespace juice
     }
 
     template <size_t I>
-    const variant_alternative_t<I, variant_storage_base<Types...>>&
+    const variant_alternative_t<I, variant<Types...>>&
     get() const &
     {
       if (index() != I)
@@ -1179,7 +1197,7 @@ namespace juice
 
       return reinterpret_cast<
         const ref_type_t<
-          variant_alternative_t<I, variant_storage_base>
+          variant_alternative_t<I, variant<Types...>>
         >&
       >(
         m_storage
@@ -1187,10 +1205,10 @@ namespace juice
     }
 
     template <size_t I>
-    variant_alternative_t<I, variant_storage_base<Types...>>&
+    variant_alternative_t<I, variant<Types...>>&
     get() &
     {
-      using E = variant_alternative_t<I, variant_storage_base>;
+      using E = variant_alternative_t<I, variant<Types...>>;
       if (index() != I)
       {
         throw bad_variant_access("Tuple does not contain requested item");
@@ -1206,10 +1224,10 @@ namespace juice
     }
 
     template <size_t I>
-    variant_alternative_t<I, variant_storage_base>&&
+    variant_alternative_t<I, variant<Types...>>&&
     get() &&
     {
-      using E = variant_alternative_t<I, variant_storage_base>;
+      using E = variant_alternative_t<I, variant<Types...>>;
       if (index() != I)
       {
         throw bad_variant_access("Tuple does not contain requested item");
@@ -1270,7 +1288,9 @@ namespace juice
     void
     emplace_internal(Args&&... args)
     {
-      new(&m_storage) T(std::forward<Args>(args)...);
+      using R = typename std::conditional<std::is_reference<T>::value, 
+        ref<T>, T>::type;
+      new(&m_storage) R(std::forward<Args>(args)...);
     }
 
     template <typename T, typename U>
@@ -1284,9 +1304,105 @@ namespace juice
     }
   };
 
+  template <
+    bool IsTriviallyDestructible,
+    typename... Types
+  >
+  class variant_storage_impl;
+
   template <typename... Types>
-  class variant : public variant_storage_base<Types...>
+  class variant_storage_impl<
+    true,
+    Types...
+  > : public variant_storage_base<Types...>
   {
+    using super = variant_storage_base<Types...>;
+
+    public:
+    using super::super;
+
+    variant_storage_impl() = default;
+    ~variant_storage_impl() = default;
+
+    variant_storage_impl&
+    operator=(const variant_storage_impl&)
+    {
+    }
+
+    template <typename T>
+    variant_storage_impl(T&& t)
+    {
+    }
+  };
+
+  template <typename... Types>
+  class variant_storage_impl<
+    false,
+    Types...
+  > : public variant_storage_impl<true, Types...>
+  {
+    using super = variant_storage_impl<true, Types...>;
+
+    public:
+    using super::super;
+
+    variant_storage_impl(const variant_storage_impl&) = default;
+
+    template <typename T>
+    variant_storage_impl(T&& t)
+    {
+    }
+
+    template <size_t I, typename... Args>
+    variant_storage_impl(in_place_index_t<I>, Args&&... args)
+    {
+    }
+  };
+
+  template <typename... Types>
+  using choose_variant_storage = variant_storage_impl<
+    conjunction<std::is_trivially_destructible<Types>::value...>::value,
+    Types...
+  >;
+
+  template <typename... Types>
+  class variant : public choose_variant_storage<Types...>
+  {
+    private:
+
+    using super = choose_variant_storage<Types...>;
+
+    public:
+
+    variant() :
+    variant(in_place_index<0>)
+    {
+    }
+
+    variant(const variant& rhs) = default;
+
+    template <typename T, typename... Args>
+    variant(in_place_type_t<T> t, Args&&... args)
+    : super(t, std::forward<Args>(args)...)
+    {
+    }
+
+    template <size_t I, typename... Args>
+    variant(in_place_index_t<I> i, Args&&... args)
+    : super(i, std::forward<Args>(args)...)
+    {
+    }
+
+    template <
+      typename T,
+      //typename = std::enable_if_t<
+      //  !std::is_same<std::decay<T>, variant>::value>
+      typename Construct = detail::get_overload_t<T, Types...>
+    >
+    variant(T&& t)
+    : variant(in_place_type<Construct>, std::forward<T>(t))
+    {
+    }
   };
 
   template <typename... Types>
