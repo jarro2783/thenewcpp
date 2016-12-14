@@ -224,8 +224,9 @@ void
 string_equal()
 {
   juice::variant<int, std::string, float> v("Hello world");
-  bool b = v == "Hello world";
-  std::cout << "String equal: " << std::boolalpha << b << std::endl;
+  //This is not in the standard
+  //bool b = v == "Hello world";
+  //std::cout << "String equal: " << std::boolalpha << b << std::endl;
 }
 
 int main(int argc, char** argv)

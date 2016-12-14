@@ -65,14 +65,14 @@ TEST_CASE("Correct types", "[types]")
   ));
 
   //TODO: This should pass when ~variant is a trivial destructor
-  //constexpr juice::variant<int, char> y(5);
+  constexpr juice::variant<int, char> y(5);
 }
 
 TEST_CASE("Destruct objects", "[destructor]")
 {
   bool destructed = false;
   {
-    juice::variant<DestructTracker, int>(
+    juice::variant<DestructTracker, int> track_me(
       juice::in_place_type<DestructTracker>, destructed);
   }
 
@@ -96,7 +96,7 @@ TEST_CASE("Assign string", "[assign]")
 {
   juice::variant<int, std::string, float> v("Hello world");
   REQUIRE(v.index() == 1);
-  REQUIRE(v.operator==("Hello world"));
+  REQUIRE(v == decltype(v)("Hello world"));
 }
 
 TEST_CASE("Get correct type", "[get]")
@@ -112,14 +112,14 @@ TEST_CASE("Get correct type", "[get]")
     v = std::string("Hello world");
     REQUIRE(v.index() == 1);
     REQUIRE(juice::get<std::string>(v) == "Hello world");
-    REQUIRE(v.operator==("Hello world"));
+    REQUIRE(v == decltype(v)("Hello world"));
   }
 
   SECTION("convert to float") {
     v = 42.5f;
     REQUIRE(v.index() == 2);
     REQUIRE(juice::get<float>(v) == 42.5);
-    REQUIRE(v == 42.5f);
+    REQUIRE(v == MyVariant(42.5f));
   }
 }
 
