@@ -642,6 +642,21 @@ namespace juice
       : super(in_place_index<I>, std::forward<Args>(args)...)
       {
       }
+
+      template <size_t I>
+      constexpr
+      auto&
+      get(in_place_index_t<I>)
+      {
+        return get(in_place_index<I-1>);
+      }
+
+      constexpr
+      T&
+      get(in_place_index_t<0>)
+      {
+        return super::head;
+      }
     };
   }
 
@@ -1053,9 +1068,9 @@ namespace juice
     template <size_t I, typename... Args>
     constexpr explicit
     variant_storage_base(in_place_index_t<I> i, Args&&... args)
-    : m_union(i, std::forward<Args>(args)...)
+    : m_storage(0)
+    , m_union(i, std::forward<Args>(args)...)
     , m_which(I)
-    , m_storage(0)
     {
     }
 
@@ -1215,7 +1230,7 @@ namespace juice
     decltype(auto)
     apply_visitor(Visitor&& visitor, Args&&... args)
     {
-      return do_visit<Types...>()(Internal(), m_which, &m_storage,
+      return do_visit<Types...>()(Internal(), m_which, &m_union,
         std::forward<Visitor>(visitor), std::forward<Args>(args)...);
     }
 
@@ -1223,7 +1238,7 @@ namespace juice
     decltype(auto)
     apply_visitor(Visitor&& visitor, Args&&... args) const
     {
-      return do_visit<Types...>()(Internal(), m_which, &m_storage,
+      return do_visit<Types...>()(Internal(), m_which, &m_union,
         std::forward<Visitor>(visitor), std::forward<Args>(args)...);
     }
 
@@ -1299,6 +1314,18 @@ namespace juice
 
     }
 
+    protected:
+
+    void
+    destroy()
+    {
+      if (index() != variant_npos)
+      {
+        apply_visitor_internal(destroyer());
+        indicate_which(variant_npos);
+      }
+    }
+
     private:
 
     //typename 
@@ -1327,17 +1354,6 @@ namespace juice
     apply_visitor_internal(Visitor&& visitor) const
     {
       return apply_visitor<MPL::true_, Visitor>(std::forward<Visitor>(visitor));
-    }
-
-    void
-    destroy()
-    {
-      //shortcut here to bypass calling the empty destroy function
-      if (index() != variant_npos)
-      {
-        apply_visitor_internal(destroyer());
-        indicate_which(variant_npos);
-      }
     }
 
     template <typename T, typename... Args>
@@ -1375,6 +1391,9 @@ namespace juice
   {
     using super = variant_storage_base<Types...>;
 
+    protected:
+    using super::destroy;
+
     public:
     using super::super;
 
@@ -1399,21 +1418,17 @@ namespace juice
   > : public variant_storage_impl<true, Types...>
   {
     using super = variant_storage_impl<true, Types...>;
+    using super::destroy;
 
     public:
     using super::super;
 
     ~variant_storage_impl() {
       //TODO: clean up memory here
+      destroy();
     }
 
     variant_storage_impl(const variant_storage_impl&) = default;
-
-    template <size_t I, typename... Args>
-    variant_storage_impl(in_place_index_t<I> i, Args&&... args)
-    : super(i, std::forward<Args>(args)...)
-    {
-    }
   };
 
   template <typename... Types>
