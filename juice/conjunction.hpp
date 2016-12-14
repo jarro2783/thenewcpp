@@ -1,3 +1,5 @@
+#include <cstdlib>
+
 namespace juice
 {
   template <bool... B>
@@ -20,4 +22,7 @@ namespace juice
   {
     static constexpr bool value = true;
   };
+
+  template <bool... B>
+  constexpr size_t conjunction_v = conjunction<B...>::value;
 }
