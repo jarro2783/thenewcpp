@@ -85,13 +85,9 @@ struct MyStruct
     return *this;
   }
 
-  MyStruct()
-  {
-  }
-
-  MyStruct(MyStruct&&)
-  {
-  }
+  MyStruct() = default;
+  MyStruct(const MyStruct&) = default;
+  MyStruct(MyStruct&&) = default;
 
   int x;
 };
@@ -165,6 +161,13 @@ foo()
   std::string moveassign = "moveassign";
   emplaced = "assign";
   emplaced = moveassign;
+
+  static_assert(std::is_copy_constructible<NotMovable>::value,
+    "NotMovable can be copied");
+  static_assert(!std::is_move_constructible<NotMovable>::value,
+    "NotMovable is actually not movable");
+  static_assert(std::is_copy_constructible<MyStruct>::value,
+    "MyStruct can be copied");
 
   NotMovable notm;
   complexa = notm;

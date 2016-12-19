@@ -161,6 +161,52 @@ namespace juice
 
     template <typename T, typename U>
     constexpr size_t variant_find_v = variant_find<T, U>::value;
+
+    template <
+      bool Copy, bool CopyAssign
+    >
+    struct disable_copy_move;
+
+    template <>
+    struct disable_copy_move<true, true>
+    {
+      disable_copy_move() = default;
+      disable_copy_move(const disable_copy_move&) = default;
+
+      disable_copy_move&
+      operator=(const disable_copy_move&) = default;
+    };
+
+    template <>
+    struct disable_copy_move<false, false>
+    {
+      disable_copy_move() = default;
+      disable_copy_move(const disable_copy_move&) = delete;
+
+      disable_copy_move&
+      operator=(const disable_copy_move&) = delete;
+    };
+
+    template <>
+    struct disable_copy_move<true, false>
+    {
+      disable_copy_move() = default;
+      disable_copy_move(const disable_copy_move&) = default;
+
+      disable_copy_move&
+      operator=(const disable_copy_move&) = delete;
+    };
+
+    template <>
+    struct disable_copy_move<false, true>
+    {
+      disable_copy_move() = default;
+      disable_copy_move(const disable_copy_move&) = delete;
+
+      disable_copy_move&
+      operator=(const disable_copy_move&) = default;
+    };
+
   }
 
   template <typename T>
@@ -804,22 +850,26 @@ namespace juice
         m_self.destroy();
       }
 
+      template <typename T>
+      void
+      do_assign(T&& t) const
+      {
+          m_self.destroy();
+          m_self.construct<T>(std::forward<T>(t));
+      }
+
       template <typename Rhs>
       void
-      operator()(const Rhs& rhs) const
+      operator()(Rhs&& rhs) const
       {
         if (m_self.which() == m_rhs_which)
         {
           //the types are the same, so just assign into the lhs
-          *reinterpret_cast<Rhs*>(m_self.address()) = rhs;
+          //*reinterpret_cast<Rhs*>(m_self.address()) = rhs;
         }
         else
         {
-          Rhs tmp(rhs);
-          m_self.destroy();
-
-          //if this throws, then we are already empty
-          m_self.construct<Rhs>(std::move(tmp));
+          do_assign(std::forward<Rhs>(rhs));
         }
       }
 
@@ -864,7 +914,7 @@ namespace juice
           //the standard proposal does not do this because there are no
           //recursive types, instead it just does:
           m_self.destroy();
-          new (&m_self.m_storage) Rhs(std::move(rhs));
+          new (&m_self.m_union) Rhs(std::move(rhs));
         }
       }
 
@@ -1121,7 +1171,6 @@ namespace juice
       indicate_which(I);
     }
 
-    #if 0
     variant_storage_base&
     operator=(const variant_storage_base& rhs)
     {
@@ -1132,7 +1181,6 @@ namespace juice
       }
       return *this;
     }
-    #endif
 
     variant_storage_base&
     operator=(variant_storage_base&& rhs) 
@@ -1175,8 +1223,14 @@ namespace juice
 #endif
 
     template <typename T,
+      typename type =
+        decltype(assign_FUN<Types...>::FUN(std::declval<T>())),
       typename = typename
-        std::enable_if<!std::is_same<std::decay_t<T>, variant_storage_base>::value>::type
+        std::enable_if
+        <
+          !std::is_same<std::decay_t<T>,
+          variant_storage_base>::value
+        >::type
     >
     variant_storage_base&
     operator=(T&& t) noexcept(
@@ -1187,33 +1241,21 @@ namespace juice
       >::value
     )
     {
-      typedef decltype(assign_FUN<Types...>::FUN(std::forward<T>(t))) type;
-      constexpr auto I = detail::variant_find_v<type, variant_storage_base>;
+      constexpr auto I = detail::variant_find_v<type, variant<Types...>>;
 
       if (index() != I)
       {
         destroy();
-        new (&m_storage) type(std::forward<T>(t));
+        new (&m_union) type(std::forward<T>(t));
       }
       else
       {
-        reinterpret_cast<type&>(m_storage) = std::forward<T>(t);
+        reinterpret_cast<type&>(m_union) = std::forward<T>(t);
       }
 
       indicate_which(I);
 
       return *this;
-    }
-
-    bool
-    operator==(const variant_storage_base& rhs) const
-    {
-      if (which() != rhs.which())
-      {
-        return false;
-      }
-
-      return rhs.apply_visitor_internal(equality(*this));
     }
 
     size_t which() const {return m_which;}
@@ -1269,7 +1311,7 @@ namespace juice
           variant_alternative_t<I, variant<Types...>>
         >&
       >(
-        m_storage
+        m_union
       );
     }
 
@@ -1288,7 +1330,7 @@ namespace juice
           ref_type_t<E>&
         >
         (
-          m_storage
+          m_union
         );
     }
 
@@ -1308,7 +1350,7 @@ namespace juice
             ref_type_t<E>&
           >
           (
-            m_storage
+            m_union
           )
         );
 
@@ -1326,6 +1368,17 @@ namespace juice
       }
     }
 
+    bool
+    equal(const variant_storage_base& rhs) const
+    {
+      if (which() != rhs.which())
+      {
+        return false;
+      }
+
+      return rhs.apply_visitor_internal(equality(*this));
+    }
+
     private:
 
     //typename 
@@ -1339,8 +1392,8 @@ namespace juice
 
     void indicate_which(size_t which) {m_which = which;}
 
-    void* address() {return &m_storage;}
-    const void* address() const {return &m_storage;}
+    void* address() {return &m_union;}
+    const void* address() const {return &m_union;}
 
     template <typename Visitor>
     decltype(auto)
@@ -1373,19 +1426,21 @@ namespace juice
     {
       using R = typename std::conditional<std::is_reference<T>::value, 
         ref<T>, T>::type;
-      new(&m_storage) R(std::forward<U>(t));
+      new(&m_union) R(std::forward<U>(t));
     }
   };
 
   template <
     bool IsTriviallyDestructible,
+    bool IsCopyConstructible,
     typename... Types
   >
   class variant_storage_impl;
 
   template <typename... Types>
   class variant_storage_impl<
-    true,
+    true, //is_trivially_destructible
+    true, //is_copy_constructible
     Types...
   > : public variant_storage_base<Types...>
   {
@@ -1399,32 +1454,45 @@ namespace juice
 
     variant_storage_impl() = default;
     ~variant_storage_impl() = default;
-
-    variant_storage_impl&
-    operator=(const variant_storage_impl&)
-    {
-    }
-
-    template <typename T>
-    variant_storage_impl(T&& t)
-    {
-    }
   };
 
   template <typename... Types>
   class variant_storage_impl<
+    true,
     false,
     Types...
-  > : public variant_storage_impl<true, Types...>
+  > : public variant_storage_impl<true, true, Types...>
   {
-    using super = variant_storage_impl<true, Types...>;
+    using super = variant_storage_impl<true, true, Types...>;
+
+    public:
+    using super::super;
+
+    variant_storage_impl&
+    operator=(const variant_storage_impl&) = delete;
+  };
+
+  template <typename... Types>
+  class variant_storage_impl<
+    false, //is_trivially_destructible
+    true,  //is_copy_constructible
+    Types...
+  > : public variant_storage_impl<true, true, Types...>
+  {
+    using super = variant_storage_impl<true, true, Types...>;
     using super::destroy;
 
     public:
     using super::super;
 
+    variant_storage_impl&
+    operator=(const variant_storage_impl& rhs)
+    {
+      //do a copy here
+      return *this;
+    }
+
     ~variant_storage_impl() {
-      //TODO: clean up memory here
       destroy();
     }
 
@@ -1432,29 +1500,62 @@ namespace juice
   };
 
   template <typename... Types>
+  class variant_storage_impl<
+    false, // is_trivially_destructible
+    false, // is_copy_constructible
+    Types...
+  > : public variant_storage_impl<true, false, Types...>
+  {
+    using super = variant_storage_impl<true, true, Types...>;
+
+    public:
+    using super::super;
+  };
+
+  template <typename... Types>
   using choose_variant_storage = variant_storage_impl<
-    conjunction<std::is_trivially_destructible<Types>::value...>::value,
+    conjunction_v<std::is_trivially_destructible<Types>::value...>,
+    conjunction_v<std::is_copy_constructible<Types>::value...>,
     Types...
   >;
 
   template <typename... Types>
-  class variant : public choose_variant_storage<Types...>
+  class variant :
+    public variant_storage_base<Types...>,
+    private detail::disable_copy_move
+    <
+      conjunction_v<std::is_copy_constructible<Types>::value...>,
+      conjunction_v<
+        std::is_copy_constructible<Types>::value...,
+        std::is_move_constructible<Types>::value...,
+        std::is_copy_assignable<Types>::value...
+      >
+    >
   {
     private:
 
-    using super = choose_variant_storage<Types...>;
+    using super = variant_storage_base<Types...>;
+
+    template <typename... T>
+    friend
+    bool
+    operator==(const variant<T...>&, const variant<T...>&);
 
     public:
 
     ~variant() = default;
 
     constexpr
-    variant() :
-    variant(in_place_index<0>)
+    variant()
+    : variant(in_place_index<0>)
     {
     }
 
     variant(const variant& rhs) = default;
+
+    variant(variant&& rhs)
+    {
+    }
 
     template <size_t I, typename... Args>
     constexpr
@@ -1482,10 +1583,13 @@ namespace juice
     : variant(in_place_type<Construct>, std::forward<T>(t))
     {
     }
-  };
 
-  template <typename... Types>
-  using Variant = variant<Types...>;
+    variant&
+    operator=(const variant&) = default;
+
+    using super::operator=;
+
+  };
 
   struct bad_get : public std::exception
   {
@@ -1862,6 +1966,13 @@ namespace juice
       }
     }
   };
+
+  template <typename... Types>
+  bool
+  operator==(const variant<Types...>& v, const variant<Types...>& w)
+  {
+    return v.equal(w);
+  }
 
   template <typename... Types>
   bool
