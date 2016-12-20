@@ -92,6 +92,32 @@ TEST_CASE("Emplace correct position", "[emplace]")
   REQUIRE(juice::get<0>(v) == 100);
 }
 
+TEST_CASE("Emplace correct type", "[emplace]")
+{
+  juice::variant<int, char, std::string> v;
+
+  SECTION("emplace int") {
+    v.emplace<int>(5);
+    REQUIRE(v.index() == 0);
+    REQUIRE(juice::get<int>(v) == 5);
+    REQUIRE(juice::get<0>(v) == 5);
+  }
+
+  SECTION("emplace char") {
+    v.emplace<char>('a');
+    REQUIRE(v.index() == 1);
+    REQUIRE(juice::get<char>(v) == 'a');
+    REQUIRE(juice::get<1>(v) == 'a');
+  }
+
+  SECTION("emplace string") {
+    v.emplace<std::string>("hello world");
+    REQUIRE(v.index() == 2);
+    REQUIRE(juice::get<std::string>(v) == "hello world");
+    REQUIRE(juice::get<2>(v) == "hello world");
+  }
+}
+
 TEST_CASE("Assign string", "[assign]")
 {
   juice::variant<int, std::string, float> v("Hello world");

@@ -1238,16 +1238,21 @@ namespace juice
       indicate_which(I);
     }
 
-    template <typename T, typename... Args>
+    template <typename T, typename... Args,
+      size_t I = detail::variant_find_v<T, variant<Types...>>,
+      typename = typename std::enable_if<
+        std::is_constructible<T, Args...>::value
+      >::type
+    >
     void emplace(Args&&... args)
     {
-      return emplace<detail::variant_find<T, variant_storage_base>::value>(std::forward<Args>(args)...);
+      emplace<I>(std::forward<Args>(args)...);
     }
 
     template <typename T, typename U, typename... Args>
     void emplace(std::initializer_list<U> il, Args&&... args)
     {
-      return emplace<detail::variant_find<T, variant_storage_base>::value>(
+      emplace<detail::variant_find<T, variant_storage_base>::value>(
         il,
         std::forward<Args>(args)...
       );
