@@ -208,6 +208,12 @@ bar()
   int n = 42;
   RefVariant ref(n);
 
+  RefVariant someref;
+  someref = ref;
+
+  static_assert(std::is_copy_assignable<int&>::value, "ahh");
+  static_assert(std::is_move_constructible<int&>::value, "ooh");
+
   std::cout << "Reftype has index: " << ref.index() << std::endl;
 
   auto& m = std::get<1>(ref);
