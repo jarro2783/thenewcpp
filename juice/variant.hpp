@@ -514,6 +514,36 @@ namespace juice
         !std::is_same<T, variant_storage_base<Types...>>::value
       ;
     };
+    
+    template <size_t Seen, typename T, typename... Types>
+    struct exactly_once_t;
+
+    template <size_t Seen, typename T>
+    struct exactly_once_t<Seen, T> :
+      public std::integral_constant<bool, false>
+    {
+    };
+
+    template <typename T>
+    struct exactly_once_t<1, T> :
+      public std::integral_constant<bool, true>
+    {
+    };
+
+    template <size_t Seen, typename T, typename... Types>
+    struct exactly_once_t<Seen, T, T, Types...> :
+      public exactly_once_t<Seen+1, T, Types...>
+    {
+    };
+
+    template <size_t Seen, typename T, typename U, typename... Types>
+    struct exactly_once_t<Seen, T, U, Types...>:
+      public exactly_once_t<Seen, T, Types...>
+    {
+    };
+
+    template <typename... T>
+    constexpr bool exactly_once = exactly_once_t<0, T...>::value;
 
   }
 
@@ -893,24 +923,8 @@ namespace juice
     typedef typename detail::pack_first<Types...>::type First;
 
     template <typename T>
-    struct Sizeof
-    {
-      static constexpr size_t value = sizeof(T);
-    };
-
-    template <typename T>
-    struct Alignof
-    {
-      static constexpr size_t value = alignof(T);
-    };
-
-    //size = max of size of each thing
-    static constexpr size_t m_size = 
-      max
-      <
-        Sizeof,
-        Types...
-      >::value;
+    static constexpr
+    bool exactly_once = detail::exactly_once<T, Types...>;
 
     struct constructor
     {
@@ -1238,21 +1252,25 @@ namespace juice
       indicate_which(I);
     }
 
-    template <typename T, typename... Args,
-      size_t I = detail::variant_find_v<T, variant<Types...>>,
-      typename = typename std::enable_if<
-        std::is_constructible<T, Args...>::value
-      >::type
-    >
-    void emplace(Args&&... args)
+    template <typename T, typename... Args>
+    typename std::enable_if<
+      std::is_constructible<T, Args...>::value &&
+      exactly_once<T>
+    >::type
+    emplace(Args&&... args)
     {
+      constexpr size_t I = detail::variant_find_v<T, variant<Types...>>;
       emplace<I>(std::forward<Args>(args)...);
     }
 
     template <typename T, typename U, typename... Args>
-    void emplace(std::initializer_list<U> il, Args&&... args)
+    typename std::enable_if<
+      std::is_constructible<T, std::initializer_list<U>, Args...>::value &&
+      exactly_once<T>
+    >::type
+    emplace(std::initializer_list<U> il, Args&&... args)
     {
-      emplace<detail::variant_find<T, variant_storage_base>::value>(
+      emplace<detail::variant_find<T, variant<Types...>>::value>(
         il,
         std::forward<Args>(args)...
       );
@@ -1447,9 +1465,6 @@ namespace juice
 
     private:
 
-    //typename 
-    //  std::aligned_storage<m_size, max<Alignof, Types...>::value>::type
-    //  m_storage;
     char m_storage;
 
     void* address() {return &this->m_union;}

@@ -176,4 +176,8 @@ TEST_CASE("Emplace with initializer_list", "[emplace]") {
   REQUIRE(v.index() == 0);
   auto& vec = juice::get<0>(v);
   REQUIRE((vec == std::vector<int>{0, 1, 2, 3}));
+
+  v.emplace<std::list<int>>({0, 1, 2});
+  REQUIRE(v.index() == 1);
+  REQUIRE((juice::get<std::list<int>>(v) == std::list<int>{0, 1, 2}));
 }
