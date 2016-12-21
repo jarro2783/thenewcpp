@@ -1270,7 +1270,12 @@ namespace juice
     }
 
     template <size_t I, typename U, typename... Args>
-    void emplace(std::initializer_list<U> il, Args&&... args)
+    typename std::enable_if<
+      std::is_constructible<
+        variant_alternative_t<I, variant<Types...>>,
+        std::initializer_list<U>, Args...>::value
+    >::type
+    emplace(std::initializer_list<U> il, Args&&... args)
     {
       if (!valueless_by_exception())
       {

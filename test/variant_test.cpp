@@ -1,4 +1,6 @@
+#include <list>
 #include <type_traits>
+#include <vector>
 
 #include <juice/variant.hpp>
 
@@ -163,4 +165,15 @@ TEST_CASE("Comparison", "[compare]") {
   REQUIRE(b > a);
   REQUIRE(c > a);
   REQUIRE(b == d);
+}
+
+TEST_CASE("Emplace with initializer_list", "[emplace]") {
+  typedef juice::variant<std::vector<int>, std::list<int>> MyVariant;
+
+  MyVariant v;
+
+  v.emplace<0>({0, 1, 2, 3}, std::allocator<int>());
+  REQUIRE(v.index() == 0);
+  auto& vec = juice::get<0>(v);
+  REQUIRE((vec == std::vector<int>{0, 1, 2, 3}));
 }
