@@ -960,6 +960,9 @@ namespace juice
     static constexpr
     bool exactly_once = detail::exactly_once<T, Types...>;
 
+    template <size_t I>
+    using alternative = variant_alternative_t<I, variant<Types...>>;
+
     struct constructor
     {
       constructor(variant_storage_base& self)
@@ -1311,7 +1314,10 @@ namespace juice
     }
 
     template <size_t I, typename... Args>
-    void emplace(Args&&... args)
+    typename std::enable_if<
+      std::is_constructible<alternative<I>, Args...>::value
+    >::type
+    emplace(Args&&... args)
     {
       if (!valueless_by_exception())
       {

@@ -32,6 +32,25 @@ namespace
 
   template <bool B>
   constexpr bool validate_v = validate<B>::value;
+
+
+  template <size_t I, typename Variant, typename... Args,
+    typename = decltype(std::declval<Variant>(). template
+      emplace<I>(std::declval<Args>()...))
+  >
+  bool
+  emplace_defined(Variant&&, Args&&...)
+  {
+    return true;
+  }
+
+  template <size_t I, typename Variant, typename... Args>
+  bool
+  emplace_defined(const Variant&, Args&&...)
+  {
+    return false;
+  }
+  
 }
 
 // There is nothing for Catch to test here because these are all
@@ -180,4 +199,18 @@ TEST_CASE("Emplace with initializer_list", "[emplace]") {
   v.emplace<std::list<int>>({0, 1, 2});
   REQUIRE(v.index() == 1);
   REQUIRE((juice::get<std::list<int>>(v) == std::list<int>{0, 1, 2}));
+}
+
+TEST_CASE("Emplace disabled", "[emplace]") {
+  typedef juice::variant<int, char, std::string> V;
+
+  V v{};
+
+  REQUIRE((!std::is_constructible<int, int&, int&>::value));
+
+  REQUIRE((emplace_defined<0>(v, 1)));
+  REQUIRE((!emplace_defined<0>(v, 1, 2)));
+  REQUIRE((emplace_defined<1>(v, 'c')));
+  REQUIRE((emplace_defined<2>(v, 3, '4')));
+  REQUIRE((!emplace_defined<2>(v, v)));
 }
