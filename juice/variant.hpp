@@ -76,6 +76,12 @@ namespace juice
   template <typename T>
   class recursive_wrapper;
 
+  struct allocator_arg_t {
+    explicit allocator_arg_t() = default;
+  };
+
+  constexpr allocator_arg_t allocator_arg{};
+
   namespace MPL
   {
     struct true_ {};
@@ -172,6 +178,7 @@ namespace juice
     {
       disable_copy_move() = default;
       disable_copy_move(const disable_copy_move&) = default;
+      disable_copy_move(disable_copy_move&&) = default;
 
       disable_copy_move&
       operator=(const disable_copy_move&) = default;
@@ -182,6 +189,7 @@ namespace juice
     {
       disable_copy_move() = default;
       disable_copy_move(const disable_copy_move&) = delete;
+      disable_copy_move(disable_copy_move&&) = default;
 
       disable_copy_move&
       operator=(const disable_copy_move&) = delete;
@@ -192,6 +200,7 @@ namespace juice
     {
       disable_copy_move() = default;
       disable_copy_move(const disable_copy_move&) = default;
+      disable_copy_move(disable_copy_move&&) = default;
 
       disable_copy_move&
       operator=(const disable_copy_move&) = delete;
@@ -202,6 +211,7 @@ namespace juice
     {
       disable_copy_move() = default;
       disable_copy_move(const disable_copy_move&) = delete;
+      disable_copy_move(disable_copy_move&&) = default;
 
       disable_copy_move&
       operator=(const disable_copy_move&) = default;
@@ -1224,9 +1234,9 @@ namespace juice
     }
 
     variant_storage_base(variant_storage_base&& rhs)
-    noexcept(conjunction<std::is_nothrow_move_constructible<
+    noexcept(conjunction_v<std::is_nothrow_move_constructible<
       Types
-    >::value...>::value)
+    >::value...>)
     {
       //this does not invalidate rhs, it moves the value in rhs to this,
       //which leaves an empty but valid value in rhs
@@ -1538,11 +1548,7 @@ namespace juice
     }
 
     variant(const variant& rhs) = default;
-
-    variant(variant&& rhs)
-    : variant(in_place_index<0>)
-    {
-    }
+    variant(variant&&) = default;
 
     template <size_t I, typename... Args>
     constexpr
@@ -1568,6 +1574,12 @@ namespace juice
     constexpr
     variant(T&& t)
     : variant(in_place_type<Construct>, std::forward<T>(t))
+    {
+    }
+
+    template <typename Alloc>
+    variant(allocator_arg_t, const Alloc& alloc)
+    : variant(in_place_index<0>, alloc)
     {
     }
 
