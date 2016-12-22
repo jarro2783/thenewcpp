@@ -169,45 +169,69 @@ namespace juice
     constexpr size_t variant_find_v = variant_find<T, U>::value;
 
     template <
-      bool Copy, bool CopyAssign
+      bool Copy, bool CopyAssign,
+      bool Move, bool MoveAssign
     >
     struct disable_copy_move;
 
     template <>
-    struct disable_copy_move<true, true>
+    struct disable_copy_move<true, true, true, true>
     {
       disable_copy_move() = default;
-      disable_copy_move(const disable_copy_move&) = default;
-      disable_copy_move(disable_copy_move&&) = default;
 
+      disable_copy_move(const disable_copy_move&) = default;
       disable_copy_move&
       operator=(const disable_copy_move&) = default;
+
+      disable_copy_move(disable_copy_move&&) = default;
+      disable_copy_move&
+      operator=(disable_copy_move&&) = default;
     };
 
     template <>
-    struct disable_copy_move<false, false>
+    struct disable_copy_move<false, false, true, true>
     {
       disable_copy_move() = default;
+
       disable_copy_move(const disable_copy_move&) = delete;
-      disable_copy_move(disable_copy_move&&) = default;
-
       disable_copy_move&
       operator=(const disable_copy_move&) = delete;
+
+      disable_copy_move(disable_copy_move&&) = default;
+      disable_copy_move&
+      operator=(disable_copy_move&&) = default;
     };
 
     template <>
-    struct disable_copy_move<true, false>
+    struct disable_copy_move<true, false, true, false>
     {
       disable_copy_move() = default;
-      disable_copy_move(const disable_copy_move&) = default;
-      disable_copy_move(disable_copy_move&&) = default;
 
+      disable_copy_move(const disable_copy_move&) = default;
       disable_copy_move&
       operator=(const disable_copy_move&) = delete;
+
+      disable_copy_move(disable_copy_move&&) = default;
+      disable_copy_move&
+      operator=(disable_copy_move&&) = delete;
     };
 
     template <>
-    struct disable_copy_move<false, true>
+    struct disable_copy_move<true, false, false, false>
+    {
+      disable_copy_move() = default;
+
+      disable_copy_move(const disable_copy_move&) = default;
+      disable_copy_move&
+      operator=(const disable_copy_move&) = delete;
+
+      disable_copy_move(disable_copy_move&&) = delete;
+      disable_copy_move&
+      operator=(disable_copy_move&&) = delete;
+    };
+
+    template <>
+    struct disable_copy_move<false, true, false, false>
     {
       disable_copy_move() = default;
       disable_copy_move(const disable_copy_move&) = delete;
@@ -1525,6 +1549,13 @@ namespace juice
         std::is_copy_constructible<Types>::value...,
         std::is_move_constructible<Types>::value...,
         std::is_copy_assignable<Types>::value...
+      >,
+      conjunction_v<
+        std::is_move_constructible<Types>::value...
+      >,
+      conjunction_v<
+        std::is_move_constructible<Types>::value...,
+        std::is_move_assignable<Types>::value...
       >
     >
   {
