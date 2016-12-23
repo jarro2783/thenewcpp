@@ -241,6 +241,31 @@ namespace juice
       operator=(const disable_copy_move&) = default;
     };
 
+    struct enable_constructor_tag_t {
+    };
+
+    constexpr enable_constructor_tag_t enable_constructor_tag{};
+
+    template <bool Constructor>
+    struct disable_constructor;
+
+    template <>
+    struct disable_constructor<true>
+    {
+      disable_constructor() = default;
+
+      constexpr explicit
+      disable_constructor(const enable_constructor_tag_t&) {}
+    };
+
+    template <>
+    struct disable_constructor<false>
+    {
+      disable_constructor() = delete;
+
+      constexpr explicit
+      disable_constructor(const enable_constructor_tag_t&) {}
+    };
   }
 
   template <typename T>
@@ -954,8 +979,6 @@ namespace juice
 
     using super = variant_choose_base<Types...>;
 
-    typedef typename detail::pack_first<Types...>::type First;
-
     template <typename T>
     static constexpr
     bool exactly_once = detail::exactly_once<T, Types...>;
@@ -1548,6 +1571,11 @@ namespace juice
   template <typename... Types>
   class variant :
     public variant_storage_base<Types...>,
+    private detail::disable_constructor<
+      std::is_default_constructible<
+        variant_alternative_t<0, variant<Types...>>
+      >::value
+    >,
     private detail::disable_copy_move
     <
       conjunction_v<std::is_copy_constructible<Types>::value...>,
@@ -1568,6 +1596,11 @@ namespace juice
     private:
 
     using super = variant_storage_base<Types...>;
+    using enable_default_constructor = detail::disable_constructor<
+      std::is_default_constructible<
+        variant_alternative_t<0, variant<Types...>>
+      >::value
+    >;
 
     template <typename... T>
     friend
@@ -1591,6 +1624,7 @@ namespace juice
     constexpr
     variant(in_place_index_t<I> i, Args&&... args)
     : super(i, std::forward<Args>(args)...)
+    , enable_default_constructor(detail::enable_constructor_tag)
     {
     }
 
