@@ -72,6 +72,9 @@ TEST_CASE("Correct types", "[types]")
   int some_int = 42;
 
   juice::variant<int, std::string> x;
+
+  REQUIRE(x.index() == 0);
+
   const juice::variant<int, std::string> cx;
   juice::variant<int&&, char&&> move_refs(std::move(some_int));
   juice::variant<int&, char&> refs(some_int);

@@ -1197,6 +1197,7 @@ namespace juice
       v.construct(t);
     }
 
+    #if 0
     template <size_t Which, typename... MyTypes>
     struct assign_initialise;
 
@@ -1248,6 +1249,7 @@ namespace juice
       //this should never match
       void initialise();
     };
+    #endif
 
 
     public:
@@ -1273,7 +1275,10 @@ namespace juice
     }
     #endif
 
-    variant_storage_base() = default;
+    variant_storage_base()
+    : variant_storage_base(in_place_index<0>)
+    {
+    }
 
     ~variant_storage_base() = default;
 
@@ -1298,7 +1303,6 @@ namespace juice
     constexpr explicit
     variant_storage_base(in_place_index_t<I> i, Args&&... args)
     : super(i, std::forward<Args>(args)...)
-    , m_storage(0)
     {
     }
 
@@ -1528,8 +1532,6 @@ namespace juice
 
     private:
 
-    char m_storage;
-
     void* address() {return &this->m_union;}
     const void* address() const {return &this->m_union;}
 
@@ -1611,11 +1613,13 @@ namespace juice
 
     ~variant() = default;
 
-    constexpr
-    variant()
-    : variant(in_place_index<0>)
-    {
-    }
+    //constexpr
+    //variant()
+    //: enable_default_constructor()
+    //, variant(in_place_index<0>)
+    //{
+    //}
+    variant() = default;
 
     variant(const variant& rhs) = default;
     variant(variant&&) = default;
