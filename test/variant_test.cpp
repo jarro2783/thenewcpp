@@ -50,7 +50,19 @@ namespace
   {
     return false;
   }
-  
+
+  class NotDefaultConstructible {
+    public:
+
+    NotDefaultConstructible() = delete;
+  };
+}
+
+TEST_CASE("Constructor availability", "[constructor]")
+{
+  typedef juice::variant<NotDefaultConstructible, int> VarNotDefaultConstructible;
+  REQUIRE((!std::is_default_constructible<NotDefaultConstructible>::value));
+  REQUIRE((!std::is_default_constructible<VarNotDefaultConstructible>::value));
 }
 
 // There is nothing for Catch to test here because these are all
