@@ -189,6 +189,20 @@ namespace juice
     };
 
     template <>
+    struct disable_copy_move<true, true, true, false>
+    {
+      disable_copy_move() = default;
+
+      disable_copy_move(const disable_copy_move&) = default;
+      disable_copy_move&
+      operator=(const disable_copy_move&) = default;
+
+      disable_copy_move(disable_copy_move&&) = default;
+      disable_copy_move&
+      operator=(disable_copy_move&&) = delete;
+    };
+
+    template <>
     struct disable_copy_move<false, false, true, true>
     {
       disable_copy_move() = default;
@@ -235,10 +249,21 @@ namespace juice
     {
       disable_copy_move() = default;
       disable_copy_move(const disable_copy_move&) = delete;
-      disable_copy_move(disable_copy_move&&) = default;
+      disable_copy_move(disable_copy_move&&) = delete;
 
       disable_copy_move&
       operator=(const disable_copy_move&) = default;
+    };
+
+    template <>
+    struct disable_copy_move<false, false, false, false>
+    {
+      disable_copy_move() = default;
+      disable_copy_move(const disable_copy_move&) = delete;
+      disable_copy_move(disable_copy_move&&) = delete;
+
+      disable_copy_move&
+      operator=(const disable_copy_move&) = delete;
     };
 
     struct enable_constructor_tag_t {
@@ -1619,7 +1644,7 @@ namespace juice
     //, variant(in_place_index<0>)
     //{
     //}
-    variant() = default;
+    constexpr variant() = default;
 
     variant(const variant& rhs) = default;
     variant(variant&&) = default;

@@ -12,7 +12,7 @@ rule cxx_link
     command = $cxxcompiler $in -o $out $ldflags
 
 rule execute
-    command = $in
+    command = $in $flags
 
 build test/conjunction.o: cxx test/conjunction.cpp
 
@@ -33,5 +33,6 @@ build test/conjunction: cxx_link test/conjunction.o test/variant_test_main.o
 build test: phony test_variant
 
 build test_variant: execute test/variant_test
+    flags = --use-colour yes
 
 default test/variant_test test/variant
