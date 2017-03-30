@@ -77,6 +77,20 @@ namespace
     CopyAssign&
     operator=(CopyAssign&&) = delete;
   };
+
+  class NotCopyAssign {
+    public:
+
+    NotCopyAssign() = default;
+    NotCopyAssign(const NotCopyAssign&) = default;
+    NotCopyAssign(NotCopyAssign&&) = default;
+
+    NotCopyAssign&
+    operator=(const NotCopyAssign&) = delete;
+
+    NotCopyAssign&
+    operator=(NotCopyAssign&&) = default;
+  };
 }
 
 typedef
@@ -90,6 +104,10 @@ typedef
 typedef
   juice::variant<CopyAssign, int>
   VarCopyAssign;
+
+typedef
+  juice::variant<NotCopyAssign, int>
+  VarNotCopyAssign;
 
 TEST_CASE("Constructor availability", "[constructor]")
 {
@@ -113,6 +131,9 @@ TEST_CASE("Copy/move availability", "[copy]")
   REQUIRE((std::is_copy_assignable<VarCopyAssign>::value));
   REQUIRE((std::is_copy_constructible<VarCopyAssign>::value));
   REQUIRE((std::is_move_constructible<VarCopyAssign>::value));
+
+  //not copy assignable
+  REQUIRE((!std::is_copy_assignable<VarNotCopyAssign>::value));
 }
 
 // There is nothing for Catch to test here because these are all

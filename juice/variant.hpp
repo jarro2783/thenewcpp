@@ -189,6 +189,20 @@ namespace juice
     };
 
     template <>
+    struct disable_copy_move<true, false, true, true>
+    {
+      disable_copy_move() = default;
+
+      disable_copy_move(const disable_copy_move&) = default;
+      disable_copy_move&
+      operator=(const disable_copy_move&) = delete;
+
+      disable_copy_move(disable_copy_move&&) = default;
+      disable_copy_move&
+      operator=(disable_copy_move&&) = default;
+    };
+
+    template <>
     struct disable_copy_move<true, true, true, false>
     {
       disable_copy_move() = default;
@@ -244,6 +258,7 @@ namespace juice
       operator=(disable_copy_move&&) = delete;
     };
 
+    #if 0
     template <>
     struct disable_copy_move<false, true, false, false>
     {
@@ -254,6 +269,7 @@ namespace juice
       disable_copy_move&
       operator=(const disable_copy_move&) = default;
     };
+    #endif
 
     template <>
     struct disable_copy_move<false, false, false, false>
