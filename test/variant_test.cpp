@@ -91,6 +91,13 @@ namespace
     NotCopyAssign&
     operator=(NotCopyAssign&&) = default;
   };
+
+  class MoveConstructible {
+    public:
+
+    MoveConstructible(const MoveConstructible&) = delete;
+    MoveConstructible(MoveConstructible&&) = default;
+  };
 }
 
 typedef
@@ -109,6 +116,10 @@ typedef
   juice::variant<NotCopyAssign, int>
   VarNotCopyAssign;
 
+typedef
+  juice::variant<MoveConstructible, int>
+  VarMoveConstructible;
+
 TEST_CASE("Constructor availability", "[constructor]")
 {
   REQUIRE((!std::is_default_constructible<NotDefaultConstructible>::value));
@@ -120,6 +131,7 @@ TEST_CASE("Copy/move availability", "[copy]")
   //move constructible
   REQUIRE((!std::is_move_constructible<NotMoveConstructible>::value));
   REQUIRE((!std::is_move_constructible<VarNotMoveConstructible>::value));
+  REQUIRE((!std::is_move_assignable<VarNotMoveConstructible>::value));
 
   REQUIRE((!std::is_copy_assignable<VarNotMoveConstructible>::value));
 
@@ -134,6 +146,13 @@ TEST_CASE("Copy/move availability", "[copy]")
 
   //not copy assignable
   REQUIRE((!std::is_copy_assignable<VarNotCopyAssign>::value));
+
+  //only move constructible
+  REQUIRE((std::is_move_constructible<MoveConstructible>::value));
+  REQUIRE((std::is_move_constructible<VarMoveConstructible>::value));
+  REQUIRE((!std::is_copy_constructible<VarMoveConstructible>::value));
+  REQUIRE((!std::is_copy_assignable<VarMoveConstructible>::value));
+  REQUIRE((!std::is_move_assignable<VarMoveConstructible>::value));
 }
 
 // There is nothing for Catch to test here because these are all

@@ -245,6 +245,20 @@ namespace juice
     };
 
     template <>
+    struct disable_copy_move<false, false, true, false>
+    {
+      disable_copy_move() = default;
+
+      disable_copy_move(const disable_copy_move&) = delete;
+      disable_copy_move&
+      operator=(const disable_copy_move&) = delete;
+
+      disable_copy_move(disable_copy_move&&) = default;
+      disable_copy_move&
+      operator=(disable_copy_move&&) = delete;
+    };
+
+    template <>
     struct disable_copy_move<true, false, false, false>
     {
       disable_copy_move() = default;
