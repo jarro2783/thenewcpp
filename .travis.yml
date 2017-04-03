@@ -1,5 +1,8 @@
 sudo: required
 language: generic
+before_install:
+  - 'wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -'
+  - echo "deb http://apt.llvm.org/precise/ llvm-toolchain-precise-4.0 main" | sudo tee -a /etc/apt/sources.list
 matrix:
   include:
     - os: linux
@@ -12,7 +15,6 @@ matrix:
           sources: &sources
             - llvm-toolchain-precise-3.8
             - llvm-toolchain-precise-3.9
-            - llvm-toolchain-precise-4.0
             - ubuntu-toolchain-r-test
     - os: linux
       env: COMPILER_NAME=clang CXX=clang++-3.8 CC=clang-3.8
