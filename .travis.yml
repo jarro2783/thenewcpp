@@ -13,19 +13,10 @@ matrix:
             - g++-5
             - ninja-build
           sources: &sources
-            - llvm-toolchain-precise-3.8
             - llvm-toolchain-precise-3.9
             - ubuntu-toolchain-r-test
             - sourceline: deb http://apt.llvm.org/precise/ llvm-toolchain-precise-4.0 main
               key_url: http://apt.llvm.org/llvm-snapshot.gpg.key
-    - os: linux
-      env: COMPILER_NAME=clang CXX=clang++-3.8 CC=clang-3.8
-      addons:
-        apt:
-          packages:
-            - clang-3.8
-            - ninja-build
-          sources: *sources
     - os: linux
       env: COMPILER_NAME=clang CXX=clang++-3.9 CC=clang-3.9
       addons:
