@@ -318,3 +318,38 @@ TEST_CASE("Emplace disabled", "[emplace]") {
   REQUIRE((emplace_defined<2>(v, 3, '4')));
   REQUIRE((!emplace_defined<2>(v, v)));
 }
+
+struct TwoVisitor
+{
+  void
+  operator()(int, float)
+  {
+  }
+
+  void
+  operator()(int, const std::string&)
+  {
+  }
+
+  void
+  operator()(char, float)
+  {
+  }
+
+  void
+  operator()(char, const std::string&)
+  {
+  }
+};
+
+TEST_CASE("Multi visitor", "[visitation]") {
+  typedef juice::variant<int, char> V1;
+  typedef juice::variant<std::string, float> V2;
+
+  V1 x;
+  V2 y;
+
+  TwoVisitor visitor;
+
+  juice::visit(visitor, x, y);
+}
