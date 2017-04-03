@@ -1990,7 +1990,7 @@ namespace juice
   get_if(variant<Types...>* var) noexcept
   {
     //return visit(get_visitor<T>(), *var);
-    //return get_if<detail::variant_find<T, variant<Types...>>::value>(var);
+    return get_if<detail::variant_find<T, variant<Types...>>::value>(var);
   }
 
   template <typename T, typename... Types>

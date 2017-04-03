@@ -353,3 +353,13 @@ TEST_CASE("Multi visitor", "[visitation]") {
 
   juice::visit(visitor, x, y);
 }
+
+TEST_CASE("get_if values", "[get_if]")
+{
+  juice::variant<int, char> foo('a');
+  auto value = juice::get_if<char>(&foo);
+
+  REQUIRE((juice::get_if<int>(&foo) == nullptr));
+  REQUIRE(value != nullptr);
+  REQUIRE(*value == 'a');
+}
