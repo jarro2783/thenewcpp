@@ -1339,8 +1339,8 @@ namespace juice
 
     variant_storage_base(const variant_storage_base& rhs)
     {
-      //rhs.apply_visitor_internal(constructor(*this));
-      //indicate_which(rhs.which());
+      rhs.apply_visitor_internal(constructor(*this));
+      indicate_which(rhs.which());
     }
 
     variant_storage_base(variant_storage_base&& rhs)

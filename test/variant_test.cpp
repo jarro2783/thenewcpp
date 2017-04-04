@@ -122,8 +122,12 @@ typedef
 
 TEST_CASE("Constructor availability", "[constructor]")
 {
+  REQUIRE((std::is_default_constructible<juice::variant<int, char>>::value));
   REQUIRE((!std::is_default_constructible<NotDefaultConstructible>::value));
   REQUIRE((!std::is_default_constructible<VarNotDefaultConstructible>::value));
+
+  juice::variant<int, char> x;
+  REQUIRE((juice::get<int>(x) == 0));
 }
 
 TEST_CASE("Copy/move availability", "[copy]")
@@ -155,6 +159,16 @@ TEST_CASE("Copy/move availability", "[copy]")
   REQUIRE((!std::is_move_assignable<VarMoveConstructible>::value));
 }
 
+TEST_CASE("Copy/move functionality", "[copy]")
+{
+  juice::variant<int, char> x('a');
+  REQUIRE(juice::get<char>(x) == 'a');
+  decltype(x) y(x);
+  decltype(x) z = x;
+  CHECK((juice::get<char>(y) = 'a'));
+  CHECK((juice::get<char>(z) = 'a'));
+}
+
 // There is nothing for Catch to test here because these are all
 // compile time assertions.
 TEST_CASE("Correct types", "[types]")
@@ -164,6 +178,8 @@ TEST_CASE("Correct types", "[types]")
   juice::variant<int, std::string> x;
 
   REQUIRE(x.index() == 0);
+  REQUIRE(juice::get<int>(x) == 0);
+  REQUIRE(juice::get<0>(x) == 0);
 
   const juice::variant<int, std::string> cx;
   juice::variant<int&&, char&&> move_refs(std::move(some_int));
@@ -215,6 +231,10 @@ TEST_CASE("Emplace correct position", "[emplace]")
   v.emplace<0>(100);
   REQUIRE(v.index() == 0);
   REQUIRE(juice::get<0>(v) == 100);
+
+  juice::variant<int, std::string> u;
+  u.emplace<1>("hello world");
+  REQUIRE(juice::get<1>(u) == "hello world");
 }
 
 TEST_CASE("Emplace correct type", "[emplace]")
